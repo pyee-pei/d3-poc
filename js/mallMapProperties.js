@@ -9,6 +9,7 @@ var mallMap = {
     "relativeNodes":{},
     "sunburstChart":"",
     "stackedBarChart":"",
+    "wellData":{},
     "mainData":"",
     "extraData":"",
     "mapData":""

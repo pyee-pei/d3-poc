@@ -35,14 +35,34 @@
 <script type="text/javascript" src="js/mallMapProperties.js"></script>
 <script>
 
+    function downloadWellData(){
+        console.log('downloading well data');
+        var promises = [
+        d3.json("https://prod-97.westus.logic.azure.com:443/workflows/909974398dd34ff3a28a0c468e54d2be/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=7gRYpMmX2thjblij6wfcbJMePRg9pFrr_Ppz-blAxbU",
+            {method: "POST",body:JSON.stringify({client_id:1009,key_date:"2021-08-01",n:25}),headers:{"Content-Type":"application/json"}})
+         //   , d3.json("https://prod-95.westus.logic.azure.com:443/workflows/7cdad61f9e164483902987680e53a755/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=EpK7g0min5GnGuLX7d24dWvQpr5kyVYjZ9LfFiHRF5w",
+         //       {method: "POST",body:JSON.stringify({client_id:1009,start_date:"2021-08-01",end_date:"2021-09-01",n:25}),headers:{"Content-Type":"application/json"}}),
+        ]
+        Promise.all(promises).then(wellDataReady);
+
+        function wellDataReady(all_datasets){
+           // var nodeIds = new Set();
+          //  all_datasets[0].forEach(d => d.related_nodes.forEach(n => nodeIds.add(n.node_id)));
+          //  nodeIds = Array.from(nodeIds.values());
+         //   nodeIds.forEach(function(n){
+         //       mallMap.wellData[n] = all_datasets[0].filter(f => f.related_nodes.find(r => r.node_id === n) !== undefined);
+         //   })
+            debugger;
+
+        }
+
+    }
     var promises = [
         d3.json("https://prod-44.westus.logic.azure.com:443/workflows/f813d130506449c7aaf7e99e00776141/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=e-6x-Szn7DEoQDwAVwCSWmWXsJMFoQbMEV2VJbN6Suk"),
         d3.json("https://prod-129.westus.logic.azure.com:443/workflows/7f48f62137f54267a91e4b83687a2f83/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=F6ozaxNeplqKgzgQ7vgbV6_dKx97cHcLrKCxwB3eY1Y",
             {method: "POST",body:JSON.stringify({client_id:1009}),headers:{"Content-Type":"application/json"}}),
         d3.json("https://prod-177.westus.logic.azure.com:443/workflows/c5fcf01bfec54a25a6a7a5a41c981d35/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=K1iAuIu-VbhfketSSHWOe5hHt2AO_lx0N8z_ceSNXK8",
             {method: "POST",body:JSON.stringify({client_id:1009}),headers:{"Content-Type":"application/json"}}),
-        d3.json("https://prod-95.westus.logic.azure.com:443/workflows/7cdad61f9e164483902987680e53a755/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=EpK7g0min5GnGuLX7d24dWvQpr5kyVYjZ9LfFiHRF5w",
-            {method: "POST",body:JSON.stringify({client_id:1009,start_date:"2021-08-01",end_date:"2021-09-01",n:25}),headers:{"Content-Type":"application/json"}}),
         d3.json("data/usStates.json"),
         d3.csv("data/stateCodes.csv")
     ]
@@ -51,7 +71,6 @@
 
     function ready(all_datasets) {
 
-        debugger;
         wellNames = {};
 
         var colourMatrix = {}, matrixWellIds = new Set(), groupNames = new Set();
@@ -160,7 +179,7 @@
         mallMap.mainData = all_datasets[0];
         mallMap.mapData = all_datasets[4];
         initialiseDashboard(mallMap.mainData, mallMap.extraData,mallMap.mapData,"chart_div","breadcrumb_div","footer_div","extra_chart_div");
-
+        downloadWellData();
         d3.selectAll(".datasetChoice")
             .on("change",function(d){
                 if(this.id === "group"){
