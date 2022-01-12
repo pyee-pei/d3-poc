@@ -40,19 +40,16 @@
         var promises = [
         d3.json("https://prod-97.westus.logic.azure.com:443/workflows/909974398dd34ff3a28a0c468e54d2be/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=7gRYpMmX2thjblij6wfcbJMePRg9pFrr_Ppz-blAxbU",
             {method: "POST",body:JSON.stringify({client_id:1009,key_date:"2021-08-01",n:25}),headers:{"Content-Type":"application/json"}})
-         //   , d3.json("https://prod-95.westus.logic.azure.com:443/workflows/7cdad61f9e164483902987680e53a755/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=EpK7g0min5GnGuLX7d24dWvQpr5kyVYjZ9LfFiHRF5w",
-         //       {method: "POST",body:JSON.stringify({client_id:1009,start_date:"2021-08-01",end_date:"2021-09-01",n:25}),headers:{"Content-Type":"application/json"}}),
         ]
         Promise.all(promises).then(wellDataReady);
 
         function wellDataReady(all_datasets){
-           // var nodeIds = new Set();
-          //  all_datasets[0].forEach(d => d.related_nodes.forEach(n => nodeIds.add(n.node_id)));
-          //  nodeIds = Array.from(nodeIds.values());
-         //   nodeIds.forEach(function(n){
-         //       mallMap.wellData[n] = all_datasets[0].filter(f => f.related_nodes.find(r => r.node_id === n) !== undefined);
-         //   })
-            debugger;
+            var nodeIds = new Set();
+            all_datasets[0].forEach(d => nodeIds.add(d.node_id));
+           nodeIds = Array.from(nodeIds.values());
+            nodeIds.forEach(function(n){
+                mallMap.wellData[n] = all_datasets[0].filter(f => f.node_id === n);
+            })
 
         }
 
@@ -64,13 +61,17 @@
         d3.json("https://prod-177.westus.logic.azure.com:443/workflows/c5fcf01bfec54a25a6a7a5a41c981d35/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=K1iAuIu-VbhfketSSHWOe5hHt2AO_lx0N8z_ceSNXK8",
             {method: "POST",body:JSON.stringify({client_id:1009}),headers:{"Content-Type":"application/json"}}),
         d3.json("data/usStates.json"),
-        d3.csv("data/stateCodes.csv")
+        d3.csv("data/stateCodes.csv"),
+        d3.json("data/well_data.json"),
+        d3.csv("data/ytd_production_data_min.csv")
     ]
 
     Promise.all(promises).then(ready)
 
     function ready(all_datasets) {
 
+        mallMap.wellData = all_datasets[5];
+        mallMap.extraChartData = all_datasets[6];
         wellNames = {};
 
         var colourMatrix = {}, matrixWellIds = new Set(), groupNames = new Set();
@@ -91,6 +92,7 @@
                 }
             })
         })
+        debugger;
         all_datasets[0] = all_datasets[0][0];
         all_datasets[0].colors = {"functional":"#F0F0F0"};
         all_datasets[0].children = addColour(all_datasets[0].children);
@@ -115,9 +117,9 @@
         groupNames = Array.from(groupNames.values());
         var wellsByGroup = {};
         groupNames.forEach(function(d){
-            var filteredData = all_datasets[2].filter(f => f.group_name === d);
+            var myWells = all_datasets[2].find(f => f.group_name === d).wells;
             var myIds = [];
-            filteredData.forEach(f => myIds.push(f.well_id));
+            myWells.forEach(f => myIds.push(f.well_id));
             wellsByGroup[d] = myIds;
         })
 
