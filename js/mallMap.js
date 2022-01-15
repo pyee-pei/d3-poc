@@ -1,6 +1,6 @@
 
 
-function initialiseDashboard(myData,extraChartData,mapData,divId,breadcrumbDivId,footerDivId,extraChartDivId){
+function initialiseDashboard(myData,mapData,divId,breadcrumbDivId,footerDivId,extraChartDivId){
 
     //draw svg for breadcrumb,chart and footer
     drawSvg(divId,true);
@@ -10,9 +10,8 @@ function initialiseDashboard(myData,extraChartData,mapData,divId,breadcrumbDivId
     //draw map + minimap in footer
     drawMallMap(myData,divId,breadcrumbDivId);
     drawMiniMallMap(myData,footerDivId);
-  //  mallMap.extraChartData = extraChartData;
-   // mallMap.extraChartDivId = extraChartDivId;
-   // drawStackedBar();
+    mallMap.extraChartDivId = extraChartDivId;
+    drawStackedBar();
 
 }
 

@@ -78,6 +78,12 @@
 
         mallMap.wellData = all_datasets[6];
         mallMap.extraChartData = all_datasets[7];
+        mallMap.extraChartData.map(m => m.date = convertDate(m.date))
+
+        function convertDate(myDate){
+            myDate = myDate.split("/");
+            return new Date(myDate[2],+myDate[0]-1,myDate[1]);
+        }
         wellNames = {};
 
         var colourMatrix = {}, matrixWellIds = new Set(), groupNames = new Set();
@@ -139,8 +145,6 @@
                         extraChildren = extraChildren.sort((a,b) =>
                         d3[sortType](a.relativeValue,b.relativeValue))
                         c.wellDataAdded = true;
-
-                        debugger;
                         c.children = extraChildren;
                     }
                 }
@@ -214,7 +218,7 @@
 
         mallMap.mainData = all_datasets[1];
         mallMap.mapData = all_datasets[5];
-        initialiseDashboard(mallMap.mainData, mallMap.extraData,mallMap.mapData,"chart_div","breadcrumb_div","footer_div","extra_chart_div");
+        initialiseDashboard(mallMap.mainData,mallMap.mapData,"chart_div","breadcrumb_div","footer_div","extra_chart_div");
         downloadWellData();
 
         d3.selectAll(".datasetChoice")
@@ -223,7 +227,7 @@
                     populateWells(wellsByGroup[this.value]);
                 }
                 mallMap.selectedColor = this.value;
-                initialiseDashboard(mallMap.mainData, mallMap.extraData,mallMap.mapData,"chart_div","breadcrumb_div","footer_div","extra_chart_div");
+                initialiseDashboard(mallMap.mainData, mallMap.mapData,"chart_div","breadcrumb_div","footer_div","extra_chart_div");
             });
 
     };

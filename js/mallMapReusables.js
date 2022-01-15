@@ -809,7 +809,8 @@ function stackedBarChart() {
     function my(mySvg) {
         svg = mySvg;
 
-        let dateGroup = d3.group(myData.data, d => d.date);
+        myData = myData.sort((a,b) => d3.ascending(a.date,b.date));
+        let dateGroup = d3.group(myData, d => d.date);
         dateGroup = Array.from(dateGroup);
 
         currentData = getDatabyStackOption();
@@ -849,35 +850,6 @@ function stackedBarChart() {
 
         drawBar(currentData[currentDataIndex],0);
 
-        filterOptions = ["all","top 25","bottom 25"];
-
-        const filterGroup = svg.selectAll('.filterGroup' + myClass)
-            .data(filterOptions)
-            .join(function(group){
-                var enter = group.append("g").attr("class","filterGroup" + myClass);
-                enter.append("text").attr("class","filterText");
-                return enter;
-            });
-
-        filterGroup.select(".filterText")
-            .attr("id",(d,i) => "filterText" + i)
-            .attr("fill",d => d.includes("top") ? "#31a354":(d.includes("bottom") ? "#cb181d" : "#333333"))
-            .attr("opacity",(d,i) => i === 0 ? 1 : 0.4)
-            .attr("y",height + margins.top + (margins.bottom*0.4))
-            .attr("cursor","pointer")
-            .text((d,i) => (i === 0 ? "" : "|    ") + d.toUpperCase())
-            .attr("transform","translate(" + margins.left + ",0)")
-            .on("click",filterClick);
-
-        var filterX = 0;
-        d3.selectAll(".filterText").each(function(){
-            d3.select(this).attr("x",filterX);
-            var textWidth = document.getElementById(this.id).getBoundingClientRect().width;
-            filterX += (textWidth + 5);
-        })
-
-        filterGroup.attr("transform","translate(" + ((width - filterX)/2) + ",0)");
-
         const barOptions = ["stack","split","proportion"];
 
         const barOptionsGroup = svg.selectAll('.barOptions' + myClass)
@@ -911,7 +883,7 @@ function stackedBarChart() {
 
         barOptionsGroup.attr("transform","translate(" + ((width - barOptionsX)/2) + ",0)");
 
-        const stackOptions = ["well_orientation","op_code","route_name"];
+        const stackOptions = ["well_orientation","route_name"];
 
         const stackOptionsGroup = svg.selectAll('.stackOptionsGroup' + myClass)
             .data(stackOptions)
@@ -944,6 +916,7 @@ function stackedBarChart() {
 
             myLegendKeys = JSON.parse(JSON.stringify(myLegendKeys));
             myLegendKeys.push("IPC");
+            debugger;
 
             const legendGroup = svg.selectAll('.legendGroup' + myClass)
                 .data(myLegendKeys)
@@ -1000,7 +973,8 @@ function stackedBarChart() {
         function getDatabyStackOption(){
 
             let myKeys = new Set();
-            myData.data.forEach(d => myKeys.add(d[stackType]));
+            mallMap.wellData.map(m => m[stackType] === "" ? "vertical" : m[stackType]);
+            mallMap.wellData.forEach(d => myKeys.add(d[stackType]));
             myKeys = Array.from(myKeys);
 
             const barData = [];
@@ -1008,26 +982,26 @@ function stackedBarChart() {
             const barDataBottom25 = [];
 
             dateGroup.forEach(function(d){
-                var myTotal = d3.sum(d[1], s => s.ipc_revenue);
-                var actualTotal = d3.sum(d[1], s => s.actual_revenue);
-                var stackData = Array.from(d3.rollup(d[1],v => d3.sum(v, s => s.actual_revenue)
-                    ,g => g[stackType]));
-                var ipcStackData = Array.from(d3.rollup(d[1],v => d3.sum(v, s => s.ipc_revenue)
-                    ,g => g[stackType]));
+                var myTotal = d3.sum(d[1], s => s.ipc_revenue_minus_royalty);
+                var actualTotal = d3.sum(d[1], s => s.actual_revenue_minus_royalty);
+                var stackData = Array.from(d3.rollup(d[1],v => d3.sum(v, s => s.actual_revenue_minus_royalty)
+                    ,g => mallMap.wellData.find(f => f.well_id === g.well_id)[stackType]));
+                var ipcStackData = Array.from(d3.rollup(d[1],v => d3.sum(v, s => s.ipc_revenue_minus_royalty)
+                    ,g => mallMap.wellData.find(f => f.well_id === g.well_id)[stackType]));
                 barData.push(getEntry(d[0],myTotal,actualTotal,stackData,ipcStackData));
                 var filteredData = d[1].filter(f => f.position_flag === "topN")
-                myTotal = d3.sum(filteredData, s => s.ipc_revenue);
-                actualTotal = d3.sum(filteredData, s => s.actual_revenue);
-                stackData = Array.from(d3.rollup(filteredData,v => d3.sum(v, s => s.actual_revenue),g => g[stackType]));
-                ipcStackData = Array.from(d3.rollup(filteredData,v => d3.sum(v, s => s.ipc_revenue),g => g[stackType]));
+                myTotal = d3.sum(filteredData, s => s.ipc_revenue_minus_royalty);
+                actualTotal = d3.sum(filteredData, s => s.actual_revenue_minus_royalty);
+                stackData = Array.from(d3.rollup(filteredData,v => d3.sum(v, s => s.actual_revenue_minus_royalty),g => mallMap.wellData.find(f => f.well_id === g.well_id)[stackType]));
+                ipcStackData = Array.from(d3.rollup(filteredData,v => d3.sum(v, s => s.ipc_revenue_minus_royalty),g => mallMap.wellData.find(f => f.well_id === g.well_id)[stackType]));
                 barDataTop25.push(getEntry(d[0],myTotal,actualTotal,stackData,ipcStackData));
                 filteredData = d[1].filter(f => f.position_flag === "bottomN")
-                myTotal = d3.sum(filteredData, s => s.ipc_revenue);
-                actualTotal = d3.sum(filteredData, s => s.actual_revenue);
-                stackData = Array.from(d3.rollup(filteredData,v => d3.sum(v, s => s.actual_revenue)
-                    ,g => g[stackType]));
-                ipcStackData = Array.from(d3.rollup(filteredData,v => d3.sum(v, s => s.actual_revenue)
-                    ,g => g[stackType]));
+                myTotal = d3.sum(filteredData, s => s.ipc_revenue_minus_royalty);
+                actualTotal = d3.sum(filteredData, s => s.actual_revenue_minus_royalty);
+                stackData = Array.from(d3.rollup(filteredData,v => d3.sum(v, s => s.actual_revenue_minus_royalty)
+                    ,g => mallMap.wellData.find(f => f.well_id === g.well_id)[stackType]));
+                ipcStackData = Array.from(d3.rollup(filteredData,v => d3.sum(v, s => s.actual_revenue_minus_royalty)
+                    ,g => mallMap.wellData.find(f => f.well_id === g.well_id)[stackType]));
                 barDataBottom25.push(getEntry(d[0],myTotal,actualTotal,stackData,ipcStackData));
             })
 
@@ -1200,7 +1174,7 @@ function stackedBarChart() {
 
         barGroup.select(".stackedRect")
             .attr("x",d => xScale(d.data.date))
-            .attr("width",xScale.bandwidth()-1)
+            .attr("width",xScale.bandwidth())
             .interrupt()
             .transition()
             .duration(transitionTime)
