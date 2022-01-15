@@ -10,7 +10,9 @@ var mallMap = {
     "sunburstChart":"",
     "stackedBarChart":"",
     "wellData":{},
+    "wellExtraData":{},
     "mainData":"",
     "extraData":"",
-    "mapData":""
+    "mapData":"",
+    "myWellCount":25
 };

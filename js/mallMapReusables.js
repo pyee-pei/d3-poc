@@ -48,7 +48,7 @@ function mallMapChart() {
         zoomToBounds(false,1000);
 
         //cheat for poc demo
-        var relativeNodes = root.descendants().filter(d => d.data.relative !== undefined);
+        var relativeNodes = root.descendants().filter(d => d.data.relativeValue !== undefined);
         relativeNodes.forEach(function(d){
             mallMap.relativeNodes[d.data.name] = d;
         })
@@ -289,7 +289,7 @@ function zoomToBounds(expandable,transitionTime) {
                         zoomToBounds(d.data.expandable === undefined ? false : true,1000);
                         if(d.data.name === "30 Day"){
                             mallMap.stackedBarChart.changeFilter("all");
-                        } else if (d.data.relative !== undefined){
+                        } else if (d.data.relativeValue !== undefined){
                             mallMap.stackedBarChart.changeFilter(d.data.name.toLowerCase());
                         }
                     }
@@ -314,11 +314,18 @@ function zoomToBounds(expandable,transitionTime) {
     }
 
     function addFoldoutData(d){
+        //check if ancesters are expandable
+        var descendantsExtraData = d.descendants().filter(f => Object.keys(mallMap.wellExtraData).includes(f.data.id));
+        descendantsExtraData.forEach(function(e){
+        })
 
+        var myCopy = {},addNewChildren = false;
+
+        myCopy = {"value":d.value,"name":d.data.name,"id":d.data.id,"colors":d.data.colors,"children":[]};
+        addChildren(d.children,myCopy);
 
         //copy the hierarchy
-        var myCopy = {"value":d.value,"name":d.data.name,"id":d.data.id,"colors":d.data.colors,"children":[]};
-        addChildren(d.children,myCopy);
+
         //flatten it and add partition/hierarchy
         var flattenCopy = getPartition(getHierarchy(myCopy));
         flattenCopy = flattenCopy.descendants();
@@ -336,7 +343,7 @@ function zoomToBounds(expandable,transitionTime) {
         function addChildren(myDataset,currentCopy){
             myDataset.forEach(function(c){
                 var myValue = c.value;
-                if(d.data.relative === true){
+                if(d.data.wellDataAdded === true){
                     myValue = c.data.relativeValue;
                 }
                 currentCopy.children.push({
@@ -460,23 +467,6 @@ function zoomToBounds(expandable,transitionTime) {
         return breadcrumbData;
     }
 
-    function getBreadcrumbsBack(d){
-
-        debugger;
-        //loop through and add breadcrumb for each depth;
-        var currentDepth = d.depth;
-        var breadcrumbData = [], currentParent = d;
-        while (currentDepth > 0){
-            breadcrumbData.push({
-                "depth":currentParent.depth,
-                "label":currentParent.data.name,
-                "fill":currentParent.depth === 0 ? "white" : getPathFill(currentParent)
-            })
-            currentDepth = currentParent.depth;
-            currentParent = currentParent.parent;
-        }
-        return breadcrumbData;
-    }
 
     function getPathFill(d){
         return d.depth === 0 ? "transparent" : (d.data.colors[selectedColor] || mallMap.colors.fillColor);
@@ -576,7 +566,7 @@ function tooltipMallMapChart() {
             .attr("transform",translateStr);
 
         pathGroup.select(".tooltipMiniMapPath")
-            .attr("fill",  d => d.data.colors[selectedColor] === undefined ? "white" : d.data.colors[selectedColor])
+            .attr("fill",  d => d.data.colors[selectedColor] === undefined ? "#F0F0F0" : d.data.colors[selectedColor])
             .attr("d", arc);
 
     }
