@@ -6,7 +6,6 @@ var mallMap = {
     "currentScale":1,
     "extraChartDivId":"",
     "extraChartData":{},
-    "relativeNodes":{},
     "sunburstChart":"",
     "stackedBarChart":"",
     "wellData":{},
@@ -14,5 +13,10 @@ var mallMap = {
     "mainData":"",
     "extraData":"",
     "mapData":"",
-    "myWellCount":25
+    "myWellCount":25,
+    "barDateRange":"all",
+    "barDataFiltered":false,
+    "selectedParentNode":"",
+    "wellNames": {}
+
 };
