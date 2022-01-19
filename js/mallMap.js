@@ -1,6 +1,6 @@
 
 
-function initialiseDashboard(myData,extraChartData,mapData,divId,breadcrumbDivId,footerDivId,extraChartDivId){
+function initialiseDashboard(myData,mapData,divId,breadcrumbDivId,footerDivId,extraChartDivId){
 
     //draw svg for breadcrumb,chart and footer
     drawSvg(divId,true);
@@ -10,7 +10,6 @@ function initialiseDashboard(myData,extraChartData,mapData,divId,breadcrumbDivId
     //draw map + minimap in footer
     drawMallMap(myData,divId,breadcrumbDivId);
     drawMiniMallMap(myData,footerDivId);
-    mallMap.extraChartData = extraChartData;
     mallMap.extraChartDivId = extraChartDivId;
     drawStackedBar();
 
@@ -72,19 +71,21 @@ function drawWellMap(){
     var height = +svg.attr("height");
     var width = +svg.attr("width");
 
-    var groupedByWell = Array.from(d3.rollup(mallMap.extraChartData.data, v => d3.sum(v, s => Math.abs(s.actual_revenue - s.ipc_revenue)), d => d.well_id));
+    var groupedByWell = Array.from(d3.rollup(mallMap.extraChartData,
+            v => d3.sum(v, s => Math.abs(s.actual_revenue_minus_royalty - s.ipc_revenue_minus_royalty)), d => d.well_id));
     var myData = [];
     groupedByWell.forEach(function(d){
-        var oneWell = mallMap.extraChartData.data.find(f => f.well_id === d[0]);
-        myData.push({
-            "well_id": d[0],
-            "difference":d[1],
-            "wellName": mallMap.extraChartData.wellNames[d[0]],
-            "long_lat":oneWell.long_lat,
-            "position_flag":oneWell.position_flag,
-            "ipc": d3.sum(mallMap.extraChartData.data, s => s.well_id === d[0] ? s.ipc_revenue : 0),
-            "actual": d3.sum(mallMap.extraChartData.data, s => s.well_id === d[0] ? s.actual_revenue : 0),
-        })
+        var oneWell = mallMap.wellData.find(f => f.well_id === d[0]);
+        if(+oneWell.longitude_surface !== 0){
+            myData.push({
+                "well_id": d[0],
+                "difference":d[1],
+                "wellName": oneWell.well_name,
+                "long_lat":[+oneWell.longitude_surface,+oneWell.latitude_surface],
+                "ipc": d3.sum(mallMap.extraChartData, s => s.well_id === d[0] ? s.ipc_revenue_minus_royalty : 0),
+                "actual": d3.sum(mallMap.extraChartData, s => s.well_id === d[0] ? s.actual_revenue_minus_royalty : 0),
+            })
+        }
     })
 
     var my_chart = wellMap()
@@ -97,9 +98,15 @@ function drawWellMap(){
     my_chart(svg);
 }
 
-function drawStackedBar(){
-    //quick win, will make this better
-    d3.select("." + mallMap.extraChartDivId  + "Svg").selectAll("*").remove();
+function drawStackedBar(filteredData){
+
+    if(filteredData === undefined){
+        //quick win, will make this better
+        d3.select("." + mallMap.extraChartDivId  + "Svg").selectAll("*").remove();
+        mallMap.barDataFiltered = false;
+    } else {
+        mallMap.barDataFiltered = true;
+    }
 
     var svg = d3.select("." + mallMap.extraChartDivId + "Svg");
     var height = +svg.attr("height");
@@ -110,7 +117,8 @@ function drawStackedBar(){
         .width(width*0.6)
         .height(height*0.6)
         .margins(margins)
-        .myData(mallMap.extraChartData)
+        .barDateRange(mallMap.barDateRange)
+        .myData(filteredData === undefined ? mallMap.extraChartData : filteredData)
         .myClass(mallMap.extraChartDivId );
 
     mallMap.stackedBarChart(svg);
@@ -118,6 +126,17 @@ function drawStackedBar(){
 
 function drawLineMultiples(){
 
+    var wellIds = new Set();
+    var selectedData = mallMap.wellExtraData[mallMap.selectedParentNode];
+    if(selectedData === undefined){
+        selectedData = [];
+        var myKeys = Object.keys(mallMap.wellExtraData).filter(f => f.includes(mallMap.selectedParentNode));
+        myKeys.forEach(k => selectedData = selectedData.concat(mallMap.wellExtraData[k]))
+    }
+    selectedData.forEach(d => wellIds.add(d.well_id));
+    var chartData = [];
+    wellIds.forEach(d => chartData = chartData.concat(mallMap.extraChartData.filter(f => +f.well_id === d)));
+    chartData.map(m =>  m.ipc_delta_flag = selectedData.find(f => f.well_id === +m.well_id).ipc_delta_flag);
     //quick win, will make this better
     d3.select("." + mallMap.extraChartDivId  + "Svg").selectAll("*").remove();
     var svg = d3.select("." + mallMap.extraChartDivId  + "Svg");
@@ -130,7 +149,7 @@ function drawLineMultiples(){
         .width(width)
         .height(height)
         .margins(margins)
-        .myData(mallMap.extraChartData)
+        .myData(chartData)
         .myClass(mallMap.extraChartDivId );
 
     my_chart(svg);
@@ -143,6 +162,13 @@ function drawPyramid(){
     d3.select("." + mallMap.extraChartDivId  + "Svg").selectAll("*").remove();
     var svg = d3.select("." + mallMap.extraChartDivId  + "Svg");
 
+    var selectedData = mallMap.wellExtraData[mallMap.selectedParentNode];
+    if(selectedData === undefined){
+        selectedData = [];
+        var myKeys = Object.keys(mallMap.wellExtraData).filter(f => f.includes(mallMap.selectedParentNode));
+        myKeys.forEach(k => selectedData = selectedData.concat(mallMap.wellExtraData[k]))
+    }
+
     var height = +svg.attr("height");
     var width = +svg.attr("width");
     var margins = {"left":50,"right":50,"top":50,"bottom":30};
@@ -151,7 +177,7 @@ function drawPyramid(){
         .width(width)
         .height(height)
         .margins(margins)
-        .myData(mallMap.extraChartData)
+        .myData(selectedData)
         .myClass(mallMap.extraChartDivId);
 
     my_chart(svg);

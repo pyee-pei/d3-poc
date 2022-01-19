@@ -58,7 +58,7 @@ body{
 
 #chart_div, #extra_chart_div {
   width: 44vw;
-  height:calc(100vh - 170px);
+  height:calc(100vh - 200px);
   float:left;
 }
 

@@ -46,13 +46,6 @@ function mallMapChart() {
         drawBreadcrumbs(currentBreadcrumbData)
         drawSunburst(root,true);
         zoomToBounds(false,1000);
-
-        //cheat for poc demo
-        var relativeNodes = root.descendants().filter(d => d.data.relative !== undefined);
-        relativeNodes.forEach(function(d){
-            mallMap.relativeNodes[d.data.name] = d;
-        })
-        mallMap.relativeNodes["30 Day"] = root.descendants().find(f => f.data.name === "30 Day");
     }
 
     function getHierarchy(myDataset){
@@ -287,11 +280,6 @@ function zoomToBounds(expandable,transitionTime) {
                         //redraw sunburst and zoom.
                         drawSunburst(d,false);
                         zoomToBounds(d.data.expandable === undefined ? false : true,1000);
-                        if(d.data.name === "30 Day"){
-                            mallMap.stackedBarChart.changeFilter("all");
-                        } else if (d.data.relative !== undefined){
-                            mallMap.stackedBarChart.changeFilter(d.data.name.toLowerCase());
-                        }
                     }
                 }
             });
@@ -313,12 +301,72 @@ function zoomToBounds(expandable,transitionTime) {
             });
     }
 
+    function enableButtons(myGroup){
+        d3.select(myGroup)
+            .attr("opacity", 0.6)
+            .attr("pointer-events", "all")
+            .attr("cursor","pointer" );
+    }
+
+    function disableButtons(myGroup){
+        d3.select(myGroup)
+            .attr("opacity", 0.4)
+            .attr("pointer-events", "none")
+            .attr("cursor","not-allowed" );
+    }
+
     function addFoldoutData(d){
 
+        if(d.data.name.includes("Day")){
+            mallMap.selectedParentNode = d.data.id;
+            enableButtons(".buttonGroupfooter_div#tile");
+            enableButtons(".buttonGroupfooter_div#compare");
+            //day level (parent of top or bottom N)
+            mallMap.barDateRange = +d.data.name.split(" ")[0];
+            if(mallMap.barDataFiltered === false){
+                mallMap.stackedBarChart.changeDateRange(mallMap.barDateRange);
+            } else {
+                drawStackedBar();
+            }
+        } else if (d.ancestors().find(f => f.data.name.includes("Day")) !== undefined) {
+            //child of day level
+            mallMap.selectedParentNode = d.ancestors().find(f => f.data.name.includes("Day")).data.id;
+            enableButtons(".buttonGroupfooter_div#tile");
+            enableButtons(".buttonGroupfooter_div#compare");
+            if(d.data.name.includes("Top") || d.data.name.includes("Bottom")){;
+                //top or bottom 25
+                var myExtraData = JSON.parse(JSON.stringify(mallMap.extraChartData));
+                var wellIds = new Set();
+                d.children.forEach(c => wellIds.add(c.data.well_id));
+                wellIds = Array.from(wellIds.values());
+                myExtraData = myExtraData.filter(f => wellIds.indexOf(+f.well_id) > -1);
+                mallMap.barDateRange = +d.parent.data.name.split(" ")[0];
+                drawStackedBar(myExtraData);
+            }
+        } else {
+            mallMap.selectedParentNode = "";
+            disableButtons(".buttonGroupfooter_div#tile");
+            disableButtons(".buttonGroupfooter_div#compare");
+            //reset
+            mallMap.barDateRange = "all";
+            if(mallMap.barDataFiltered === false){
+                mallMap.stackedBarChart.changeDateRange(mallMap.barDateRange);
+            } else {
+                drawStackedBar();
+            }
+        }
+        //check if ancesters are expandable
+        var descendantsExtraData = d.descendants().filter(f => Object.keys(mallMap.wellExtraData).includes(f.data.id));
+        descendantsExtraData.forEach(function(e){
+        })
+
+        var myCopy = {},addNewChildren = false;
+
+        myCopy = {"value":d.value,"name":d.data.name,"id":d.data.id,"colors":d.data.colors,"children":[]};
+        addChildren(d.children,myCopy);
 
         //copy the hierarchy
-        var myCopy = {"value":d.value,"name":d.data.name,"id":d.data.id,"colors":d.data.colors,"children":[]};
-        addChildren(d.children,myCopy);
+
         //flatten it and add partition/hierarchy
         var flattenCopy = getPartition(getHierarchy(myCopy));
         flattenCopy = flattenCopy.descendants();
@@ -336,7 +384,7 @@ function zoomToBounds(expandable,transitionTime) {
         function addChildren(myDataset,currentCopy){
             myDataset.forEach(function(c){
                 var myValue = c.value;
-                if(d.data.relative === true){
+                if(d.data.wellDataAdded === true){
                     myValue = c.data.relativeValue;
                 }
                 currentCopy.children.push({
@@ -407,6 +455,13 @@ function zoomToBounds(expandable,transitionTime) {
                         if(myRoot.find(f => f.depth === myDepth).data.expandable !== undefined){
                             expandable = true;
                         }
+                        if(mallMap.barDateRange !== "all"){
+                            mallMap.selectedParentNode = "";
+                            disableButtons(".buttonGroupfooter_div#tile");
+                            disableButtons(".buttonGroupfooter_div#compare");
+                            mallMap.barDateRange = "all";
+                            mallMap.stackedBarChart.changeDateRange();
+                        }
                     } else {
                         expandable = myRoot.data.expandable !== undefined ? true : false;
                         addFoldoutData(myRoot);
@@ -460,23 +515,6 @@ function zoomToBounds(expandable,transitionTime) {
         return breadcrumbData;
     }
 
-    function getBreadcrumbsBack(d){
-
-        debugger;
-        //loop through and add breadcrumb for each depth;
-        var currentDepth = d.depth;
-        var breadcrumbData = [], currentParent = d;
-        while (currentDepth > 0){
-            breadcrumbData.push({
-                "depth":currentParent.depth,
-                "label":currentParent.data.name,
-                "fill":currentParent.depth === 0 ? "white" : getPathFill(currentParent)
-            })
-            currentDepth = currentParent.depth;
-            currentParent = currentParent.parent;
-        }
-        return breadcrumbData;
-    }
 
     function getPathFill(d){
         return d.depth === 0 ? "transparent" : (d.data.colors[selectedColor] || mallMap.colors.fillColor);
@@ -576,7 +614,7 @@ function tooltipMallMapChart() {
             .attr("transform",translateStr);
 
         pathGroup.select(".tooltipMiniMapPath")
-            .attr("fill",  d => d.data.colors[selectedColor] === undefined ? "white" : d.data.colors[selectedColor])
+            .attr("fill",  d => d.data.colors[selectedColor] === undefined ? "#F0F0F0" : d.data.colors[selectedColor])
             .attr("d", arc);
 
     }
@@ -681,8 +719,9 @@ function miniMallMapChart() {
 
         buttonGroup
             .attr("id",d => d)
-            .attr("opacity",d => d === "bar" ? 1 : 0.4)
-            .attr("cursor", "pointer");
+            .attr("opacity",d => d === "bar"  || d === "map" || d === "file"? 1 : 0.4)
+            .attr("pointer-events",d => d === "bar"  || d === "map" || d === "file"? "all" : "none")
+            .attr("cursor",d => d === "bar"  || d === "map" || d === "file"? "pointer" : "not-allowed");
 
         buttonGroup.select(".buttonRect")
             .attr("width",buttonWidth)
@@ -706,7 +745,7 @@ function miniMallMapChart() {
                     d3.selectAll("#file").attr("opacity",1);
 
                     var hiddenElement = document.createElement('a');
-                    hiddenElement.href = 'data:text/csv;charset=utf-8,' + encodeURI(JsonToCSV(mallMap.extraChartData.data));
+                    hiddenElement.href = 'data:text/csv;charset=utf-8,' + encodeURI(JsonToCSV(mallMap.extraChartData));
                     hiddenElement.target = '_blank';
                     hiddenElement.download = 'output.csv';
                     hiddenElement.click();
@@ -714,23 +753,13 @@ function miniMallMapChart() {
 
                     function JsonToCSV(myArray){
                         var myKeys = Object.keys(myArray[0]);
-                        myKeys = myKeys.filter(f => f !== "long_lat");
-                        myKeys = myKeys.concat(["long","lat"])
                         var csvStr = myKeys.join(",") + "\n";
 
                         myArray = myArray.sort((a,b) => d3.ascending(a.well_id,b.well_id));
                         myArray.forEach(element => {
                             if(element["position_flag"] !== ""){
                                 myKeys.forEach(function(k){
-                                    if(k !== "long" && k !== "lat"){
                                         csvStr += element[k] + ","
-                                    } else {
-                                        if(k === "long"){
-                                            csvStr += element["long_lat"][0] + ","
-                                        } else {
-                                            csvStr += element["long_lat"][1]
-                                        }
-                                    }
                                 })
                                 csvStr += "\n";
                             }
@@ -811,30 +840,45 @@ function stackedBarChart() {
         axisTransforms = {},
         maxVals = {},
         xScale = "",
+        xScaleTime = "",
         yScale = "",
         yScaleProportion = "",
         svg = "",
-        filterOptions = [];
+        filterOptions = [],
+        barDateRange = "all",
+        visibleBandwidth = 0,
+        xDomain = [],
+        newXDomain = [];
 
     function my(mySvg) {
         svg = mySvg;
 
-        let dateGroup = d3.group(myData.data, d => d.date);
+        myData = myData.sort((a,b) => d3.ascending(a.date,b.date));
+
+        let dateGroup = d3.group(myData, d => d.date);
         dateGroup = Array.from(dateGroup);
 
         currentData = getDatabyStackOption();
 
-        let xDomain = new Set();
+        xDomain = new Set();
         currentData[currentDataIndex].forEach(d => xDomain.add(d.date));
-        xDomain = Array.from(xDomain).sort((a,b) => d3.ascending(a,b));
-
+        xDomain = Array.from(xDomain).map(m => m = new Date(m)).sort((a,b) => d3.ascending(a,b));
+        newXDomain = xDomain;
         xScale = d3.scaleBand().domain(xDomain).range([0,width]);
-        const xScaleTime = d3.scaleTime().domain(d3.extent(xDomain)).range([0,width]);
+        visibleBandwidth = xScale.bandwidth();
+        xScaleTime = d3.scaleTime().domain(d3.extent(newXDomain)).range([0,width]);
+        my.changeDateRange(barDateRange);
         yScaleProportion = d3.scaleLinear().domain([0,1]).range([height,0]);
         yScale = "",scaleNumber = 0, myKeys = "",yMax = 0;
 
         if(d3.select(".xAxis" + myClass)._groups[0][0] === null) {
-            svg.append("g").attr("class","chartGroup"  + myClass)
+            svg.append("g").attr("class","chartGroup"  + myClass);
+            svg.append('clipPath').attr('id', 'barClipPath' + myClass)
+                .append('rect').attr('class','barClipRect' + myClass);
+
+            svg.append('clipPath').attr('id', 'lineClipPath' + myClass)
+                .append('rect').attr('class','lineClipRect' + myClass);
+
             svg.append("g").attr("class","axis xAxis" + myClass);
             svg.append("g").attr("class","axis yAxis" + myClass);
             svg.append("g").attr("class","axis yAxisProportion" + myClass);
@@ -842,8 +886,24 @@ function stackedBarChart() {
             svg.append("path").attr("class","ipcLine" + myClass);
         }
 
+        d3.select(".chartGroup" + myClass)
+            .attr('clip-path', 'url(#barClipPath' + myClass + ')');
+
+        d3.select(".barClipRect" + myClass)
+            .attr("width",width)
+            .attr("height",height)
+            .style("fill","deeppink")
+            .attr("fill-opacity",0.1)
+            .attr("transform","translate(" + margins.left + "," +  margins.top + ")");
+
+        d3.select(".lineClipRect" + myClass)
+            .attr("width",width)
+            .attr("height",height)
+            .style("fill","deeppink")
+            .attr("fill-opacity",0.1);
+
         d3.select(".xAxis" + myClass)
-            .call(d3.axisBottom(xScaleTime).tickValues(d3.extent(xDomain)).tickFormat(d => d3.timeFormat("%d %b %y")(d)).tickSizeOuter(0))
+            .call(d3.axisBottom(xScaleTime).tickValues(d3.extent(newXDomain)).tickFormat(d => d3.timeFormat("%d %b %y")(d)).tickSizeOuter(0))
             .attr("transform","translate(" + margins.left + "," + (height + margins.top) + ")");
 
         d3.selectAll(".xAxis" + myClass + " .tick text")
@@ -857,36 +917,7 @@ function stackedBarChart() {
         d3.selectAll(".yAxisProportion" + myClass + " .tick text")
             .attr("x",-4)
 
-        drawBar(currentData[currentDataIndex],0);
-
-        filterOptions = ["all","top 25","bottom 25"];
-
-        const filterGroup = svg.selectAll('.filterGroup' + myClass)
-            .data(filterOptions)
-            .join(function(group){
-                var enter = group.append("g").attr("class","filterGroup" + myClass);
-                enter.append("text").attr("class","filterText");
-                return enter;
-            });
-
-        filterGroup.select(".filterText")
-            .attr("id",(d,i) => "filterText" + i)
-            .attr("fill",d => d.includes("top") ? "#31a354":(d.includes("bottom") ? "#cb181d" : "#333333"))
-            .attr("opacity",(d,i) => i === 0 ? 1 : 0.4)
-            .attr("y",height + margins.top + (margins.bottom*0.4))
-            .attr("cursor","pointer")
-            .text((d,i) => (i === 0 ? "" : "|    ") + d.toUpperCase())
-            .attr("transform","translate(" + margins.left + ",0)")
-            .on("click",filterClick);
-
-        var filterX = 0;
-        d3.selectAll(".filterText").each(function(){
-            d3.select(this).attr("x",filterX);
-            var textWidth = document.getElementById(this.id).getBoundingClientRect().width;
-            filterX += (textWidth + 5);
-        })
-
-        filterGroup.attr("transform","translate(" + ((width - filterX)/2) + ",0)");
+        drawBar(currentData[currentDataIndex], mallMap.barDateRange === "all" ? 0 : 1000);
 
         const barOptions = ["stack","split","proportion"];
 
@@ -921,7 +952,7 @@ function stackedBarChart() {
 
         barOptionsGroup.attr("transform","translate(" + ((width - barOptionsX)/2) + ",0)");
 
-        const stackOptions = ["well_orientation","op_code","route_name"];
+        const stackOptions = ["well_orientation","route_name"];
 
         const stackOptionsGroup = svg.selectAll('.stackOptionsGroup' + myClass)
             .data(stackOptions)
@@ -1010,7 +1041,8 @@ function stackedBarChart() {
         function getDatabyStackOption(){
 
             let myKeys = new Set();
-            myData.data.forEach(d => myKeys.add(d[stackType]));
+            mallMap.wellData.map(m => m[stackType] === "" ? "vertical" : m[stackType]);
+            mallMap.wellData.forEach(d => myKeys.add(d[stackType]));
             myKeys = Array.from(myKeys);
 
             const barData = [];
@@ -1018,26 +1050,26 @@ function stackedBarChart() {
             const barDataBottom25 = [];
 
             dateGroup.forEach(function(d){
-                var myTotal = d3.sum(d[1], s => s.ipc_revenue);
-                var actualTotal = d3.sum(d[1], s => s.actual_revenue);
-                var stackData = Array.from(d3.rollup(d[1],v => d3.sum(v, s => s.actual_revenue)
-                    ,g => g[stackType]));
-                var ipcStackData = Array.from(d3.rollup(d[1],v => d3.sum(v, s => s.ipc_revenue)
-                    ,g => g[stackType]));
+                var myTotal = d3.sum(d[1], s => s.ipc_revenue_minus_royalty);
+                var actualTotal = d3.sum(d[1], s => s.actual_revenue_minus_royalty);
+                var stackData = Array.from(d3.rollup(d[1],v => d3.sum(v, s => s.actual_revenue_minus_royalty)
+                    ,g => mallMap.wellData.find(f => f.well_id === g.well_id)[stackType]));
+                var ipcStackData = Array.from(d3.rollup(d[1],v => d3.sum(v, s => s.ipc_revenue_minus_royalty)
+                    ,g => mallMap.wellData.find(f => f.well_id === g.well_id)[stackType]));
                 barData.push(getEntry(d[0],myTotal,actualTotal,stackData,ipcStackData));
                 var filteredData = d[1].filter(f => f.position_flag === "topN")
-                myTotal = d3.sum(filteredData, s => s.ipc_revenue);
-                actualTotal = d3.sum(filteredData, s => s.actual_revenue);
-                stackData = Array.from(d3.rollup(filteredData,v => d3.sum(v, s => s.actual_revenue),g => g[stackType]));
-                ipcStackData = Array.from(d3.rollup(filteredData,v => d3.sum(v, s => s.ipc_revenue),g => g[stackType]));
+                myTotal = d3.sum(filteredData, s => s.ipc_revenue_minus_royalty);
+                actualTotal = d3.sum(filteredData, s => s.actual_revenue_minus_royalty);
+                stackData = Array.from(d3.rollup(filteredData,v => d3.sum(v, s => s.actual_revenue_minus_royalty),g => mallMap.wellData.find(f => f.well_id === g.well_id)[stackType]));
+                ipcStackData = Array.from(d3.rollup(filteredData,v => d3.sum(v, s => s.ipc_revenue_minus_royalty),g => mallMap.wellData.find(f => f.well_id === g.well_id)[stackType]));
                 barDataTop25.push(getEntry(d[0],myTotal,actualTotal,stackData,ipcStackData));
                 filteredData = d[1].filter(f => f.position_flag === "bottomN")
-                myTotal = d3.sum(filteredData, s => s.ipc_revenue);
-                actualTotal = d3.sum(filteredData, s => s.actual_revenue);
-                stackData = Array.from(d3.rollup(filteredData,v => d3.sum(v, s => s.actual_revenue)
-                    ,g => g[stackType]));
-                ipcStackData = Array.from(d3.rollup(filteredData,v => d3.sum(v, s => s.actual_revenue)
-                    ,g => g[stackType]));
+                myTotal = d3.sum(filteredData, s => s.ipc_revenue_minus_royalty);
+                actualTotal = d3.sum(filteredData, s => s.actual_revenue_minus_royalty);
+                stackData = Array.from(d3.rollup(filteredData,v => d3.sum(v, s => s.actual_revenue_minus_royalty)
+                    ,g => mallMap.wellData.find(f => f.well_id === g.well_id)[stackType]));
+                ipcStackData = Array.from(d3.rollup(filteredData,v => d3.sum(v, s => s.actual_revenue_minus_royalty)
+                    ,g => mallMap.wellData.find(f => f.well_id === g.well_id)[stackType]));
                 barDataBottom25.push(getEntry(d[0],myTotal,actualTotal,stackData,ipcStackData));
             })
 
@@ -1093,11 +1125,11 @@ function stackedBarChart() {
         rangeRemaining =  height - ((myKeys.length-1)*10);
 
         const line = d3.line()
-            .x(d => xScale(d.date))
+            .x(d => xScale(new Date(d.date)) + (visibleBandwidth/2))
             .y(d => yScale(d.total));
 
         const lineProportion = d3.line()
-            .x(d => xScale(d.date))
+            .x(d => xScale(new Date(d.date)) + (visibleBandwidth/2))
             .y(d => yScaleProportion(1));
 
         var currentAxisTransform = 0;
@@ -1139,7 +1171,7 @@ function stackedBarChart() {
 
         splitAxisGroup.select(".splitIpcLine" + myClass)
             .attr("visibility",barLayout === "split" ? "visible":"hidden")
-            .attr("d",d => barLayout === "proportion" ? "" : d3.line().x(l => xScale(l.date)).y(l => axisScales[d](l[d + "_total"]))(myBarData))
+            .attr("d",d => barLayout === "proportion" ? "" : d3.line().x(l => xScale(new Date(l.date))).y(l => axisScales[d](l[d + "_total"]))(myBarData))
             .attr("fill","none")
             .attr("stroke","#31a354")
             .attr("transform",d => "translate(" + margins.left + "," + (margins.top + axisTransforms[d]) + ")")
@@ -1173,6 +1205,7 @@ function stackedBarChart() {
             .attr("x",-4)
 
         d3.select(".ipcLine" + myClass)
+            .attr('clip-path', 'url(#lineClipPath' + myClass + ')')
             .attr("visibility",barLayout === "stack" || barLayout === "proportion" ? "visible":"hidden")
             .attr("d",barLayout === "proportion" ? lineProportion(myBarData) : line(myBarData))
             .attr("fill","none")
@@ -1204,16 +1237,16 @@ function stackedBarChart() {
             })
             .join(function(group){
                 var enter = group.append("g").attr("class","barGroup" + myClass);
-                enter.append("rect").attr("class","stackedRect");
+                enter.append("rect").attr("class","stackedRect" + myClass);
                 return enter;
             });
 
-        barGroup.select(".stackedRect")
-            .attr("x",d => xScale(d.data.date))
-            .attr("width",xScale.bandwidth()-1)
+        barGroup.select(".stackedRect" + myClass)
             .interrupt()
             .transition()
             .duration(transitionTime)
+            .attr("x",d => xScale(new Date(d.data.date)))
+            .attr("width",visibleBandwidth)
             .attr("height",getBarHeight)
             .attr("y",getBarYValue)
 
@@ -1239,28 +1272,35 @@ function stackedBarChart() {
         }
     }
 
-    function filterClick(event,d,i){
-        d3.selectAll(".filterText").attr("opacity",0.4);
-        d3.select("#filterText" + i).attr("opacity",1);
-        if(d === "all"){
-            mallMap.sunburstChart.drawRelativeGraph(mallMap.relativeNodes["30 Day"])
-            currentDataIndex = 0;
-        } else if (d === "top 25"){
-            mallMap.sunburstChart.drawRelativeGraph(mallMap.relativeNodes["Top 25"])
-            currentDataIndex = 1;
+
+    my.changeDateRange = function (myDateRange){
+
+        if(myDateRange !== "all") {
+            var lastDate = d3.extent(xDomain)[1];
+            var newFirstDate = d3.timeDay.offset(lastDate, -myDateRange);
+            newXDomain = xDomain.filter(f => f > newFirstDate);
+            visibleBandwidth = width / myDateRange;
+            var newRangeLeft = (xDomain.length - myDateRange) * visibleBandwidth;
+            xScale.range([-newRangeLeft, width])
         } else {
-            mallMap.sunburstChart.drawRelativeGraph(mallMap.relativeNodes["Bottom 25"])
-            currentDataIndex = 2;
+            xScale.range([0,width]);
+            visibleBandwidth = xScale.bandwidth();
+            newXDomain = xDomain;
         }
-        drawBar(currentData[currentDataIndex],0);
+        xScaleTime.domain(d3.extent(newXDomain));
+        d3.select(".xAxis" + myClass)
+            .call(d3.axisBottom(xScaleTime).tickValues(d3.extent(newXDomain)).tickFormat(d => d3.timeFormat("%d %b %y")(d)).tickSizeOuter(0))
+
+        d3.selectAll(".stackedRect" + myClass)
+            .interrupt()
+            .transition()
+            .duration(3000)
+            .attr("x",d => xScale(new Date(d.data.date)))
+            .attr("width",visibleBandwidth)
+
     }
 
-    my.changeFilter = function(myVal){
-        console.log(myVal,filterOptions.indexOf(myVal));
-        filterClick({},myVal,filterOptions.indexOf(myVal));
-    }
-
-        my.width = function(value) {
+    my.width = function(value) {
         if (!arguments.length) return width;
         width = value;
         return my;
@@ -1284,10 +1324,15 @@ function stackedBarChart() {
         return my;
     };
 
-
     my.myClass = function(value) {
         if (!arguments.length) return myClass;
         myClass = value;
+        return my;
+    };
+
+    my.barDateRange = function(value) {
+        if (!arguments.length) return barDateRange;
+        barDateRange = value;
         return my;
     };
 
@@ -1306,21 +1351,26 @@ function lineMultipleChart() {
 
     function my(svg) {
 
-
+        var myPositions = new Set();
+        myData.forEach(f => myPositions.add(f.ipc_delta_flag))
+        myPositions = Array.from(myPositions.values());
+        filterType = myPositions[0];
 
         var chartWidth = (width - margins.left - margins.right)/5;
         var chartHeight = (height - margins.top - margins.bottom)/5;
-        const xScale = d3.scaleTime().domain(d3.extent(myData.data, d => d.date)).range([0,chartWidth-10]);
+        const xScale = d3.scaleTime().domain(d3.extent(myData, d => new Date(d.date))).range([0,chartWidth-10]);
 
         drawMultiples();
 
         function drawMultiples(){
-            var filteredData = myData.data.filter(f => f.position_flag === filterType);
+
+            var filteredData = myData.filter(f => f.ipc_delta_flag === filterType);
 
             var wellGroup = d3.group(filteredData, d => d.well_id);
             wellGroup = Array.from(wellGroup);
 
-            const yScale = d3.scaleLinear().domain([0,d3.max(filteredData, d => Math.max(d.ipc_revenue,d.actual_revenue))])
+            const yScale = d3.scaleLinear().domain([0,
+                d3.max(filteredData, d => Math.max(d.ipc_revenue_minus_royalty,d.actual_revenue_minus_royalty))])
                 .range([chartHeight-10,0]);
             const yScales = {};
 
@@ -1329,18 +1379,18 @@ function lineMultipleChart() {
                     yScales[d[0]] = yScale;
                 } else {
                     yScales[d[0]] = d3.scaleLinear()
-                        .domain([0,d3.max(d[1], d => Math.max(d.ipc_revenue,d.actual_revenue))])
+                        .domain([0,d3.max(d[1], d => Math.max(d.ipc_revenue_minus_royalty,d.actual_revenue_minus_royalty))])
                         .range([chartHeight-10,0])
                 }
             })
 
             const line = d3.line()
-                .x(d => xScale(d.date))
-                .y(d => yScales[d.well_id](d.ipc_revenue));
+                .x(d => xScale(new Date(d.date)))
+                .y(d => yScales[d.well_id](d.ipc_revenue_minus_royalty));
 
             const area = d3.area()
-                .x(d => xScale(d.date))
-                .y0(d => yScales[d.well_id](d.actual_revenue))
+                .x(d => xScale(new Date(d.date)))
+                .y0(d => yScales[d.well_id](d.actual_revenue_minus_royalty))
                 .y1(yScale(0));
 
             const chartGroup = svg.selectAll('.chartGroup' + myClass)
@@ -1378,7 +1428,7 @@ function lineMultipleChart() {
                 .attr("x",chartWidth/2)
                 .attr("y",15)
                 .attr("text-anchor","middle")
-                .text(d => myData.wellNames[d[0]].toUpperCase())
+                .text(d => mallMap.wellNames[d[0]].toUpperCase())
                 .attr("transform","translate(" + (2.5 + margins.left) + "," + (2.5 + margins.top) + ")")
 
             chartGroup.select(".wellMaxLabel")
@@ -1397,7 +1447,7 @@ function lineMultipleChart() {
                 .attr("transform","translate(" + (2.5 + margins.left) + "," + (2.5 + margins.top) + ")")
         }
 
-        const filterOptions = ["top 25","bottom 25"];
+        const filterOptions = myPositions;
 
         const filterGroup = svg.selectAll('.filterGroup' + myClass)
             .data(filterOptions)
@@ -1417,11 +1467,7 @@ function lineMultipleChart() {
             .on("click",function(event,d){
                 d3.selectAll(".filterText").attr("opacity",0.2);
                 d3.select(this).attr("opacity",1);
-                if(d === "top 25"){
-                    filterType = "topN";
-                } else {
-                    filterType = "bottomN";
-                }
+                filterType = d;
                 drawMultiples();
             });
 
@@ -1526,14 +1572,14 @@ function pyramidChart() {
 
         var xMax = 0, ySet = new Set();
         groupData.forEach(function(d,index){
-            var filteredData = myData.data.filter(f => f.position_flag === d.dataValue);
+            var filteredData = myData.filter(f => f.ipc_delta_flag === d.dataValue);
 
             var values = Array.from(d3.rollup(filteredData, v => d3.sum(v, s => Math.abs(s.actual_revenue - s.ipc_revenue)), d => d.well_id));
             currentData = [];
             values.forEach(function(a,i){
                 currentData.push({
                     "well_id":a[0],
-                    "wellName":myData.wellNames[a[0]],
+                    "wellName":mallMap.wellNames[a[0]],
                     "value":a[1],
                     "ipc":d3.sum(filteredData, s => s.well_id === a[0] ? s.ipc_revenue : 0),
                     "actual":d3.sum(filteredData, s => s.well_id === a[0] ? s.actual_revenue : 0),
@@ -1787,6 +1833,7 @@ function wellMap() {
         mapData = [];
 
     function my(svg) {
+
         svg = svg.select(".zoomSvg" + myClass);
 
         const zoom = d3.zoom()
@@ -1843,7 +1890,7 @@ function wellMap() {
             .attr("id",d => "well" + d.well_id)
             .attr("fill", "white")
             .attr("fill-opacity",0.4)
-            .attr("fill",d => d.position_flag === "topN" ? "green" : (d.position_flag == "bottomN" ? "red" : "white"))
+            .attr("fill", "white")
             .attr("stroke","transparent")
             .attr("stroke-width",3)
             .attr("r",d => radiusScale(d.difference))
