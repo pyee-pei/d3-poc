@@ -219,7 +219,8 @@ function zoomToBounds(expandable,transitionTime) {
 
         pathGroup.select(".sunburstPath")
             .attr("id", (d,i) =>  d.data.well_id === undefined ? "notwell" + i : "well" + d.data.well_id)
-            .attr("opacity",1)
+            .attr("display",d =>  d.data.well_id === undefined ? "block" : (mallMap.currentWellIds.length === 0 ? "block" :
+                    (mallMap.currentWellIds.indexOf(d.data.well_id) > -1 ? "block" : "none")))
             .attr("fill", getPathFill)
             .attr("d", arc)
             .on("mouseover",function(event,d){
@@ -267,8 +268,12 @@ function zoomToBounds(expandable,transitionTime) {
                 if(d.depth > 0 && midTransition === false){
                     if(d.data.well_id !== undefined){
                         mallMap.selectedColor = d.data.well_id;
-                        initialiseDashboard(mallMap.mainData, mallMap.extraData,mallMap.mapData,"chart_div","breadcrumb_div","footer_div","extra_chart_div");
+                        var wellIds = [d.data.well_id];
+                        var myExtraData = JSON.parse(JSON.stringify(mallMap.extraChartData));
+                        myExtraData = myExtraData.filter(f => wellIds.indexOf(+f.well_id) > -1);
+                        initialiseDashboard(mallMap.mainData, mallMap.mapData,"chart_div","breadcrumb_div","footer_div","extra_chart_div",myExtraData);
                         drawBreadcrumbs([{"depth":0,"label":"Home","fill":"white"},{"depth":0,"label":"BACK","fill":"#F0F0F0", "data":sunburstData,"breadcrumbs":currentBreadcrumbData}])
+
                     } else {
                         //get breadcrumb data and redraw breadcrumb
                         currentBreadcrumbData = getBreadcrumbs(d);
@@ -285,6 +290,8 @@ function zoomToBounds(expandable,transitionTime) {
             });
 
         pathGroup.select(".pathLabel")
+            .attr("display",d =>  d.data.well_id === undefined ? "block" : (mallMap.currentWellIds.length === 0 ? "block" :
+                (mallMap.currentWellIds.indexOf(d.data.well_id) > -1 ? "block" : "none")))
             .attr("opacity",1)
             .attr("pointer-events", "none")
             .attr("text-anchor", "middle")
@@ -322,45 +329,41 @@ function zoomToBounds(expandable,transitionTime) {
             enableButtons(".buttonGroupfooter_div#tile");
             enableButtons(".buttonGroupfooter_div#compare");
             //day level (parent of top or bottom N)
-            mallMap.barDateRange = +d.data.name.split(" ")[0];
-            if(mallMap.barDataFiltered === false){
-             //   mallMap.stackedBarChart.changeDateRange(mallMap.barDateRange);
-            } else {
-                drawStackedBar();
-            }
-        } else if (d.ancestors().find(f => f.data.name.includes("Day")) !== undefined) {
+            var myExtraData = JSON.parse(JSON.stringify(mallMap.extraChartData));
+            var wellIds = new Set();
+            d.children.forEach(function(c){
+                if(c.children !== undefined){
+                    c.children.forEach(w => wellIds.add(w.data.well_id))
+                }
+            });
+            wellIds = Array.from(wellIds.values());
+            myExtraData = myExtraData.filter(f => wellIds.indexOf(+f.well_id) > -1);
+            drawStackedBar(myExtraData);
+        } else if (mallMap.wellExtraData[d.data.id] !== undefined) {
             //child of day level
-            mallMap.selectedParentNode = d.ancestors().find(f => f.data.name.includes("Day")).data.id;
             enableButtons(".buttonGroupfooter_div#tile");
             enableButtons(".buttonGroupfooter_div#compare");
-            if(d.data.name.includes("Top") || d.data.name.includes("Bottom")){;
                 //top or bottom 25
                 var myExtraData = JSON.parse(JSON.stringify(mallMap.extraChartData));
                 var wellIds = new Set();
                 d.children.forEach(c => wellIds.add(c.data.well_id));
                 wellIds = Array.from(wellIds.values());
                 myExtraData = myExtraData.filter(f => wellIds.indexOf(+f.well_id) > -1);
-                mallMap.barDateRange = +d.parent.data.name.split(" ")[0];
                 drawStackedBar(myExtraData);
-            }
         } else {
             mallMap.selectedParentNode = "";
             disableButtons(".buttonGroupfooter_div#tile");
             disableButtons(".buttonGroupfooter_div#compare");
             //reset
             mallMap.barDateRange = "all";
-            if(mallMap.barDataFiltered === false){
-               // mallMap.stackedBarChart.changeDateRange(mallMap.barDateRange);
-            } else {
-                drawStackedBar();
-            }
+            drawStackedBar();
         }
         //check if ancesters are expandable
         var descendantsExtraData = d.descendants().filter(f => Object.keys(mallMap.wellExtraData).includes(f.data.id));
         descendantsExtraData.forEach(function(e){
         })
 
-        var myCopy = {},addNewChildren = false;
+        var myCopy = {};
 
         myCopy = {"value":d.value,"name":d.data.name,"id":d.data.id,"colors":d.data.colors,"children":[]};
         addChildren(d.children,myCopy);
@@ -517,7 +520,8 @@ function zoomToBounds(expandable,transitionTime) {
 
 
     function getPathFill(d){
-        return d.depth === 0 ? "transparent" : (d.data.colors[selectedColor] || mallMap.colors.fillColor);
+        return d.depth === 0 ? "transparent" : (d.data.group_color === undefined ?
+            (d.data.colors[selectedColor] || mallMap.colors.fillColor) : d.data.group_color);
     }
 
     my.drawRelativeGraph = function(graphData) {
@@ -878,7 +882,6 @@ function stackedBarChart() {
 
             svg.append('clipPath').attr('id', 'lineClipPath' + myClass)
                 .append('rect').attr('class','lineClipRect' + myClass);
-
             svg.append("g").attr("class","axis xAxis" + myClass);
             svg.append("g").attr("class","axis yAxis" + myClass);
             svg.append("g").attr("class","axis yAxisProportion" + myClass);
@@ -1203,7 +1206,7 @@ function stackedBarChart() {
         d3.select(".yAxis" + myClass)
             .attr("visibility",barLayout === "stack" ? "visible":"hidden")
             .transition()
-            .duration(1000)
+            .duration(yAxisTransitionTime)
             .call(d3.axisLeft(yScale).tickFormat(d => d > 0 ? d3.format("$.2s")(d) : "").tickSizeOuter(0))
             .attr("transform","translate(" + margins.left + "," + margins.top + ")");
 
@@ -1339,6 +1342,12 @@ function stackedBarChart() {
     my.barDateRange = function(value) {
         if (!arguments.length) return barDateRange;
         barDateRange = value;
+        return my;
+    };
+
+    my.yAxisTransitionTime = function(value) {
+        if (!arguments.length) return yAxisTransitionTime;
+        yAxisTransitionTime = value;
         return my;
     };
 
@@ -1619,7 +1628,7 @@ function pyramidChart() {
             })
         }
 
-        if(d3.select(".xAxis" + myClass)._groups[0][0] === null) {
+        if(d3.select(".yAxisPyramid" + myClass)._groups[0][0] === null) {
             svg.append("g").attr("class", "axis yAxisPyramid" + myClass)
         }
 

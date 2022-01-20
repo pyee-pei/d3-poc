@@ -17,6 +17,8 @@ var mallMap = {
     "barDateRange":"all",
     "barDataFiltered":false,
     "selectedParentNode":"",
-    "wellNames": {}
+    "wellNames": {},
+    "currentExtraChart": "bar",
+    "currentWellIds":[]
 
 };

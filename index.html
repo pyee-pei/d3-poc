@@ -123,10 +123,8 @@
                     addColour(c.children);
                 } else{
                     if (wellExtraData[c.id] !== undefined){
-                        c.name = c.name.replace(/N/g,mallMap.myWellCount);
                         var extraChildren = [];
-                        var groupColor = c.name.includes("Top") ? "green" : "red";
-                        var sortType = groupColor === "green" ? "descending" : "ascending";
+                        var sortType = c.name === "Beat" ? "descending" : "ascending";
                         wellExtraData[c.id].forEach(function(w,i){
                             extraChildren.push({
                                 "value":c.value/mallMap.myWellCount,
@@ -135,12 +133,13 @@
                                 "id": c.id + (i+1) + "-",
                                 "difference":w.actual_revenue - w.ipc_revenue,
                                 "group":c.name,
-                                "group_color":groupColor,
+                                "group_color":w.node_color,
                                 "ipc": w.ipc_revenue,
                                 "actual":w.actual_revenue,
-                                "colors":{"functional":groupColor},
+                                "colors":{"functional":w.node_color},
                                 "node_level":c.node_level + 1,
-                                "well_id":w.well_id
+                                "well_id":w.well_id,
+                                "node_rank":w.node_rank
                             })
                         })
                         extraChildren = extraChildren.sort((a,b) =>
@@ -162,6 +161,7 @@
             wellsByGroup[d] = myIds;
         })
 
+        mallMap.currentWellIds = [];
         var divGroup = d3.select("#group_div").selectAll('.groupDivInputs')
             .data(groupNames)
             .join(function(group){
@@ -217,11 +217,16 @@
 
             d3.selectAll(".datasetChoice")
                 .on("change",function(d){
+                    var wellIds = [+this.value];
                     if(this.id === "group"){
                         populateWells(wellsByGroup[this.value]);
+                        wellIds = wellsByGroup[this.value];
                     }
+                    mallMap.currentWellIds = wellIds;
+                    var myExtraData = JSON.parse(JSON.stringify(mallMap.extraChartData));
+                    myExtraData = myExtraData.filter(f => wellIds.indexOf(+f.well_id) > -1);
                     mallMap.selectedColor = this.value;
-                    initialiseDashboard(mallMap.mainData, mallMap.mapData,"chart_div","breadcrumb_div","footer_div","extra_chart_div");
+                    initialiseDashboard(mallMap.mainData, mallMap.mapData,"chart_div","breadcrumb_div","footer_div","extra_chart_div",myExtraData);
                 });
         }
 

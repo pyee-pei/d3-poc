@@ -1,6 +1,6 @@
 
 
-function initialiseDashboard(myData,mapData,divId,breadcrumbDivId,footerDivId,extraChartDivId){
+function initialiseDashboard(myData,mapData,divId,breadcrumbDivId,footerDivId,extraChartDivId,filteredBarData){
 
     //draw svg for breadcrumb,chart and footer
     drawSvg(divId,true);
@@ -11,7 +11,7 @@ function initialiseDashboard(myData,mapData,divId,breadcrumbDivId,footerDivId,ex
     drawMallMap(myData,divId,breadcrumbDivId);
     drawMiniMallMap(myData,footerDivId);
     mallMap.extraChartDivId = extraChartDivId;
-    drawStackedBar();
+    drawStackedBar(filteredBarData);
 
 }
 
@@ -100,14 +100,11 @@ function drawWellMap(){
 
 function drawStackedBar(filteredData){
 
-    if(filteredData === undefined){
+    if(mallMap.currentExtraChart !== "bar"){
+        mallMap.currentExtraChart = "bar";
         //quick win, will make this better
         d3.select("." + mallMap.extraChartDivId  + "Svg").selectAll("*").remove();
-        mallMap.barDataFiltered = false;
-    } else {
-        mallMap.barDataFiltered = true;
     }
-
     var svg = d3.select("." + mallMap.extraChartDivId + "Svg");
     var height = +svg.attr("height");
     var width = +svg.attr("width");
@@ -118,6 +115,7 @@ function drawStackedBar(filteredData){
         .height(height*0.6)
         .margins(margins)
         .barDateRange(mallMap.barDateRange)
+        .yAxisTransitionTime(filteredData === undefined ? 0 : 1000)
         .myData(filteredData === undefined ? mallMap.extraChartData : filteredData)
         .myClass(mallMap.extraChartDivId );
 
