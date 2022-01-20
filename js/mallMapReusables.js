@@ -337,6 +337,9 @@ function zoomToBounds(expandable,transitionTime) {
                 }
             });
             wellIds = Array.from(wellIds.values());
+            if(mallMap.currentWellIds.length > 0){
+                wellIds = wellIds.filter(f => mallMap.currentWellIds.indexOf(f) > -1)
+            }
             myExtraData = myExtraData.filter(f => wellIds.indexOf(+f.well_id) > -1);
             drawStackedBar(myExtraData);
         } else if (mallMap.wellExtraData[d.data.id] !== undefined) {
@@ -348,6 +351,9 @@ function zoomToBounds(expandable,transitionTime) {
                 var wellIds = new Set();
                 d.children.forEach(c => wellIds.add(c.data.well_id));
                 wellIds = Array.from(wellIds.values());
+                if(mallMap.currentWellIds.length > 0){
+                    wellIds = wellIds.filter(f => mallMap.currentWellIds.indexOf(f) > -1)
+                }
                 myExtraData = myExtraData.filter(f => wellIds.indexOf(+f.well_id) > -1);
                 drawStackedBar(myExtraData);
         } else {
@@ -355,8 +361,9 @@ function zoomToBounds(expandable,transitionTime) {
             disableButtons(".buttonGroupfooter_div#tile");
             disableButtons(".buttonGroupfooter_div#compare");
             //reset
-            mallMap.barDateRange = "all";
-            drawStackedBar();
+            var myExtraData = JSON.parse(JSON.stringify(mallMap.extraChartData));
+            myExtraData = myExtraData.filter(f => mallMap.currentWellIds.indexOf(+f.well_id) > -1);
+            drawStackedBar(myExtraData);
         }
         //check if ancesters are expandable
         var descendantsExtraData = d.descendants().filter(f => Object.keys(mallMap.wellExtraData).includes(f.data.id));
