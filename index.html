@@ -66,8 +66,6 @@
 
     function ready(all_datasets) {
 
-        debugger;
-
         var wellExtraData = {}
         var nodeIds = new Set();
         all_datasets[0].forEach(d => nodeIds.add(d.node_id));
@@ -95,9 +93,9 @@
             var myNodes = Object.keys(d).filter(f => excludeKeys.indexOf(f) === -1);
             myNodes.forEach(function(n){
                 if(colourMatrix[n] === undefined){
-                    colourMatrix[n] = [{"well_id":d.well_id,"color":d[n]}]
+                    colourMatrix[n] = [{"well_id":d.well_id === undefined ? d.name : d.well_id,"color":d[n]}]
                 } else {
-                    colourMatrix[n].push({"well_id":d.well_id,"color":d[n]});
+                    colourMatrix[n].push({"well_id":d.well_id === undefined ? d.name : d.well_id,"color":d[n]});
                 }
                 if(d.well_or_group === "group"){
                     groupNames.add(d.name);
@@ -193,7 +191,7 @@
         function populateWells(myDataset){
             myDataset = myDataset.sort((a,b) => d3.ascending(wellNames[a],wellNames[b]))
             var wellGroup = d3.select("#well_div").selectAll('.wellDivInputs')
-                .data(myDataset)
+                .data(myDataset, d => d)
                 .join(function(group){
                     var enter = group.append("g").attr("class","wellDivInputs");
                     enter.append("input").attr("class","wellInput");
@@ -216,6 +214,15 @@
                 .attr("x",30)
                 .attr("y",(d,i) => (i*12))
                 .html(d => wellNames[d].substr(0,30));
+
+            d3.selectAll(".datasetChoice")
+                .on("change",function(d){
+                    if(this.id === "group"){
+                        populateWells(wellsByGroup[this.value]);
+                    }
+                    mallMap.selectedColor = this.value;
+                    initialiseDashboard(mallMap.mainData, mallMap.mapData,"chart_div","breadcrumb_div","footer_div","extra_chart_div");
+                });
         }
 
 
@@ -225,14 +232,7 @@
         initialiseDashboard(mallMap.mainData,mallMap.mapData,"chart_div","breadcrumb_div","footer_div","extra_chart_div");
         downloadWellData();
 
-        d3.selectAll(".datasetChoice")
-            .on("change",function(d){
-                if(this.id === "group"){
-                    populateWells(wellsByGroup[this.value]);
-                }
-                mallMap.selectedColor = this.value;
-                initialiseDashboard(mallMap.mainData, mallMap.mapData,"chart_div","breadcrumb_div","footer_div","extra_chart_div");
-            });
+
 
     };
 

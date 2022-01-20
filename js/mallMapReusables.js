@@ -324,7 +324,7 @@ function zoomToBounds(expandable,transitionTime) {
             //day level (parent of top or bottom N)
             mallMap.barDateRange = +d.data.name.split(" ")[0];
             if(mallMap.barDataFiltered === false){
-                mallMap.stackedBarChart.changeDateRange(mallMap.barDateRange);
+             //   mallMap.stackedBarChart.changeDateRange(mallMap.barDateRange);
             } else {
                 drawStackedBar();
             }
@@ -350,7 +350,7 @@ function zoomToBounds(expandable,transitionTime) {
             //reset
             mallMap.barDateRange = "all";
             if(mallMap.barDataFiltered === false){
-                mallMap.stackedBarChart.changeDateRange(mallMap.barDateRange);
+               // mallMap.stackedBarChart.changeDateRange(mallMap.barDateRange);
             } else {
                 drawStackedBar();
             }
@@ -460,7 +460,7 @@ function zoomToBounds(expandable,transitionTime) {
                             disableButtons(".buttonGroupfooter_div#tile");
                             disableButtons(".buttonGroupfooter_div#compare");
                             mallMap.barDateRange = "all";
-                            mallMap.stackedBarChart.changeDateRange();
+                            //mallMap.stackedBarChart.changeDateRange();
                         }
                     } else {
                         expandable = myRoot.data.expandable !== undefined ? true : false;
@@ -867,7 +867,7 @@ function stackedBarChart() {
         xScale = d3.scaleBand().domain(xDomain).range([0,width]);
         visibleBandwidth = xScale.bandwidth();
         xScaleTime = d3.scaleTime().domain(d3.extent(newXDomain)).range([0,width]);
-        my.changeDateRange(barDateRange);
+        //my.changeDateRange(barDateRange);
         yScaleProportion = d3.scaleLinear().domain([0,1]).range([height,0]);
         yScale = "",scaleNumber = 0, myKeys = "",yMax = 0;
 
@@ -911,6 +911,8 @@ function stackedBarChart() {
             .attr("y",4);
 
         d3.select(".yAxisProportion" + myClass)
+            .transition()
+            .duration(1000)
             .call(d3.axisLeft(yScaleProportion).tickFormat(d => d > 0 ? d3.format(".0%")(d) : "").tickSizeOuter(0))
             .attr("transform","translate(" + margins.left + "," + margins.top + ")");
 
@@ -1165,6 +1167,8 @@ function stackedBarChart() {
             .each(function(d){
                 if(barLayout !== "proportion"){
                     d3.select(this)
+                        .transition()
+                        .duration(1000)
                         .attr("transform",d => "translate(" + margins.left + "," + (margins.top + axisTransforms[d]) + ")")
                         .call(d3.axisLeft(axisScales[d]).ticks(2).tickFormat(d => d > 0 ? d3.format("$.2s")(d) : "").tickSizeOuter(0));
                 }});
@@ -1198,6 +1202,8 @@ function stackedBarChart() {
 
         d3.select(".yAxis" + myClass)
             .attr("visibility",barLayout === "stack" ? "visible":"hidden")
+            .transition()
+            .duration(1000)
             .call(d3.axisLeft(yScale).tickFormat(d => d > 0 ? d3.format("$.2s")(d) : "").tickSizeOuter(0))
             .attr("transform","translate(" + margins.left + "," + margins.top + ")");
 
