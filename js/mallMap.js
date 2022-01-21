@@ -157,7 +157,12 @@ function drawLineMultiples(){
 function drawPyramid(){
 
     //quick win, will make this better
-    d3.select("." + mallMap.extraChartDivId  + "Svg").selectAll("*").remove();
+
+    if(mallMap.currentExtraChart !== "pyramid"){
+        mallMap.currentExtraChart = "pyramid";
+        //quick win, will make this better
+        d3.select("." + mallMap.extraChartDivId  + "Svg").selectAll("*").remove();
+    }
     var svg = d3.select("." + mallMap.extraChartDivId  + "Svg");
 
     var selectedData = mallMap.wellExtraData[mallMap.selectedParentNode];

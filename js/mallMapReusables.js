@@ -180,15 +180,6 @@ function zoomToBounds(expandable,transitionTime) {
         depthWidth = radius/(maxDepth-minDepth);
         midTransition = false;
 
-        //disable/enable buttons as needed
-        if(allData === true || sunburstData.data === undefined || sunburstData.data.expandable === undefined){
-            d3.selectAll("#fan").attr("cursor","disabled").attr("opacity",0.2);
-            d3.selectAll("#map").attr("cursor","disabled").attr("opacity",0.2);
-        } else {
-            d3.selectAll("#fan").attr("cursor","disabled").attr("opacity",0.2);
-            d3.selectAll("#map").attr("cursor","pointer").attr("opacity",1);
-        }
-
         //reset mini mall map
         d3.selectAll(".miniMapPath").attr("fill","#707070");
 
@@ -272,7 +263,7 @@ function zoomToBounds(expandable,transitionTime) {
                         var myExtraData = JSON.parse(JSON.stringify(mallMap.extraChartData));
                         myExtraData = myExtraData.filter(f => wellIds.indexOf(+f.well_id) > -1);
                         initialiseDashboard(mallMap.mainData, mallMap.mapData,"chart_div","breadcrumb_div","footer_div","extra_chart_div",myExtraData);
-                        drawBreadcrumbs([{"depth":0,"label":"Home","fill":"white"},{"depth":0,"label":"BACK","fill":"#F0F0F0", "data":sunburstData,"breadcrumbs":currentBreadcrumbData}])
+                        drawBreadcrumbs([{"depth":0,"label":"Home","fill":"white"},{"depth":0,"label":"BACK","fill":"#F0F0F0", "data":sunburstData.find(f => f.depth === d3.min(sunburstData, m => m.depth)),"breadcrumbs":currentBreadcrumbData}])
 
                     } else {
                         //get breadcrumb data and redraw breadcrumb
@@ -310,14 +301,14 @@ function zoomToBounds(expandable,transitionTime) {
 
     function enableButtons(myGroup){
         d3.select(myGroup)
-            .attr("opacity", 0.6)
+            .attr("opacity", 1)
             .attr("pointer-events", "all")
             .attr("cursor","pointer" );
     }
 
     function disableButtons(myGroup){
         d3.select(myGroup)
-            .attr("opacity", 0.4)
+            .attr("opacity", 0)
             .attr("pointer-events", "none")
             .attr("cursor","not-allowed" );
     }
@@ -329,40 +320,51 @@ function zoomToBounds(expandable,transitionTime) {
             enableButtons(".buttonGroupfooter_div#tile");
             enableButtons(".buttonGroupfooter_div#compare");
             //day level (parent of top or bottom N)
-            var myExtraData = JSON.parse(JSON.stringify(mallMap.extraChartData));
-            var wellIds = new Set();
-            d.children.forEach(function(c){
-                if(c.children !== undefined){
-                    c.children.forEach(w => wellIds.add(w.data.well_id))
-                }
-            });
-            wellIds = Array.from(wellIds.values());
-            if(mallMap.currentWellIds.length > 0){
-                wellIds = wellIds.filter(f => mallMap.currentWellIds.indexOf(f) > -1)
-            }
-            myExtraData = myExtraData.filter(f => wellIds.indexOf(+f.well_id) > -1);
-            drawStackedBar(myExtraData);
-        } else if (mallMap.wellExtraData[d.data.id] !== undefined) {
-            //child of day level
-            enableButtons(".buttonGroupfooter_div#tile");
-            enableButtons(".buttonGroupfooter_div#compare");
-                //top or bottom 25
+            if(mallMap.currentExtraChart === "bar"){
                 var myExtraData = JSON.parse(JSON.stringify(mallMap.extraChartData));
                 var wellIds = new Set();
-                d.children.forEach(c => wellIds.add(c.data.well_id));
+                d.children.forEach(function(c){
+                    if(c.children !== undefined){
+                        c.children.forEach(w => wellIds.add(w.data.well_id))
+                    }
+                });
                 wellIds = Array.from(wellIds.values());
                 if(mallMap.currentWellIds.length > 0){
                     wellIds = wellIds.filter(f => mallMap.currentWellIds.indexOf(f) > -1)
                 }
                 myExtraData = myExtraData.filter(f => wellIds.indexOf(+f.well_id) > -1);
                 drawStackedBar(myExtraData);
+            } else if(mallMap.currentExtraChart === "pyramid"){
+                drawPyramid();
+            }
+        } else if (mallMap.wellExtraData[d.data.id] !== undefined) {
+            //child of day level
+            enableButtons(".buttonGroupfooter_div#tile");
+            enableButtons(".buttonGroupfooter_div#compare");
+            mallMap.selectedParentNode = d.parent.data.id;
+                //top or bottom 25
+                if(mallMap.currentExtraChart === "bar") {
+                    var myExtraData = JSON.parse(JSON.stringify(mallMap.extraChartData));
+                    var wellIds = new Set();
+                    d.children.forEach(c => wellIds.add(c.data.well_id));
+                    wellIds = Array.from(wellIds.values());
+                    if (mallMap.currentWellIds.length > 0) {
+                        wellIds = wellIds.filter(f => mallMap.currentWellIds.indexOf(f) > -1)
+                    }
+                    myExtraData = myExtraData.filter(f => wellIds.indexOf(+f.well_id) > -1);
+                    drawStackedBar(myExtraData);
+                } else if (mallMap.currentExtraChart === "pyramid"){
+                    drawPyramid();
+                }
         } else {
             mallMap.selectedParentNode = "";
             disableButtons(".buttonGroupfooter_div#tile");
             disableButtons(".buttonGroupfooter_div#compare");
             //reset
             var myExtraData = JSON.parse(JSON.stringify(mallMap.extraChartData));
-            myExtraData = myExtraData.filter(f => mallMap.currentWellIds.indexOf(+f.well_id) > -1);
+            if (mallMap.currentWellIds.length > 0) {
+                myExtraData = myExtraData.filter(f => mallMap.currentWellIds.indexOf(+f.well_id) > -1);
+            };
             drawStackedBar(myExtraData);
         }
         //check if ancesters are expandable
@@ -439,13 +441,13 @@ function zoomToBounds(expandable,transitionTime) {
                 if(midTransition === false){
                     var myRoot = root.descendants().find(f => f.depth === d.depth && f.data.name === d.label);
                     var myDepth = d.depth;
+                    var allData = false;
                     if(d.label === "BACK"){
                         myRoot = d.data;
                         myDepth = d3.min(myRoot,m => m.depth);
                         if(d.depth === 0){allData = true};
                         selectedColor = "functional";
                     }
-                    var allData = false;
                     if(myDepth > 0) {
                         //reset breadcrumbs if > 0
                         var breadcrumbData = getBreadcrumbs(myRoot);
@@ -465,16 +467,21 @@ function zoomToBounds(expandable,transitionTime) {
                         if(myRoot.find(f => f.depth === myDepth).data.expandable !== undefined){
                             expandable = true;
                         }
-                        if(mallMap.barDateRange !== "all"){
-                            mallMap.selectedParentNode = "";
-                            disableButtons(".buttonGroupfooter_div#tile");
-                            disableButtons(".buttonGroupfooter_div#compare");
-                            mallMap.barDateRange = "all";
-                            //mallMap.stackedBarChart.changeDateRange();
-                        }
                     } else {
                         expandable = myRoot.data.expandable !== undefined ? true : false;
+                    }
+                    if(expandable === true){
                         addFoldoutData(myRoot);
+                    } else {
+                        mallMap.selectedParentNode = "";
+                        disableButtons(".buttonGroupfooter_div#tile");
+                        disableButtons(".buttonGroupfooter_div#compare");
+                        //reset
+                        var myExtraData = JSON.parse(JSON.stringify(mallMap.extraChartData));
+                        if(mallMap.currentWellIds.length > 0){
+                            myExtraData = myExtraData.filter(f => mallMap.currentWellIds.indexOf(+f.well_id) > -1);
+                        }
+                        drawStackedBar(myExtraData);
                     }
                     //draw chart and zoom.
                     drawSunburst(myRoot,allData);
@@ -730,7 +737,7 @@ function miniMallMapChart() {
 
         buttonGroup
             .attr("id",d => d)
-            .attr("opacity",d => d === "bar"  || d === "map" || d === "file"? 1 : 0.4)
+            .attr("opacity",d => d === "bar"  || d === "map" || d === "file"? 1 : 0)
             .attr("pointer-events",d => d === "bar"  || d === "map" || d === "file"? "all" : "none")
             .attr("cursor",d => d === "bar"  || d === "map" || d === "file"? "pointer" : "not-allowed");
 
@@ -742,19 +749,13 @@ function miniMallMapChart() {
             .attr("height",30)
             .attr("transform","translate(" + (10 + (chartWidth*1.4) + buttonTransformX) + ",5)")
             .on("click",function(event,d){
-                d3.selectAll(".buttonItem").attr("opacity",0.4);
                 if(d === "bar"){
-                    d3.selectAll("#bar").attr("opacity",1);
                     drawStackedBar();
                 } else if(d === "tile"){
-                    d3.selectAll("#tile").attr("opacity",1);
                     drawLineMultiples();
                 } else if(d === "map"){
-                        d3.selectAll("#map").attr("opacity",1);
                         drawWellMap();
                 } else if(d === "file"){
-                    d3.selectAll("#file").attr("opacity",1);
-
                     var hiddenElement = document.createElement('a');
                     hiddenElement.href = 'data:text/csv;charset=utf-8,' + encodeURI(JsonToCSV(mallMap.extraChartData));
                     hiddenElement.target = '_blank';
@@ -779,7 +780,6 @@ function miniMallMapChart() {
                     }
 
                 }else {
-                    d3.selectAll("#compare").attr("opacity",1);
                     drawPyramid();
                 }
             });
