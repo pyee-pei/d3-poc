@@ -1260,7 +1260,7 @@ function stackedBarChart() {
         barGroup.select(".stackedRect" + myClass)
             .interrupt()
             .transition()
-            .duration(transitionTime)
+            .duration(yAxisTransitionTime)
             .attr("x",d => xScale(new Date(d.data.date)))
             .attr("width",visibleBandwidth)
             .attr("height",getBarHeight)
