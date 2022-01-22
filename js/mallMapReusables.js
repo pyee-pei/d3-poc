@@ -262,6 +262,7 @@ function zoomToBounds(expandable,transitionTime) {
                         var wellIds = [d.data.well_id];
                         var myExtraData = JSON.parse(JSON.stringify(mallMap.extraChartData));
                         myExtraData = myExtraData.filter(f => wellIds.indexOf(+f.well_id) > -1);
+                        document.getElementById("radio_" + d.data.well_id).checked = true
                         initialiseDashboard(mallMap.mainData, mallMap.mapData,"chart_div","breadcrumb_div","footer_div","extra_chart_div",myExtraData);
                         drawBreadcrumbs([{"depth":0,"label":"Home","fill":"white"},{"depth":0,"label":"BACK","fill":"#F0F0F0", "data":sunburstData.find(f => f.depth === d3.min(sunburstData, m => m.depth)),"breadcrumbs":currentBreadcrumbData}])
 
@@ -319,16 +320,19 @@ function zoomToBounds(expandable,transitionTime) {
             mallMap.selectedParentNode = d.data.id;
             enableButtons(".buttonGroupfooter_div#tile");
             enableButtons(".buttonGroupfooter_div#compare");
+            var wellIds = new Set(),wellColours = {};
+            d.children.forEach(function(c){
+                if(c.children !== undefined){
+                    c.children.forEach(function(w){
+                        wellIds.add(w.data.well_id);
+                        wellColours[w.data.well_id] = w.data.group_color
+                    })
+                }
+            });
+            wellIds = Array.from(wellIds.values());
             //day level (parent of top or bottom N)
             if(mallMap.currentExtraChart === "bar"){
                 var myExtraData = JSON.parse(JSON.stringify(mallMap.extraChartData));
-                var wellIds = new Set();
-                d.children.forEach(function(c){
-                    if(c.children !== undefined){
-                        c.children.forEach(w => wellIds.add(w.data.well_id))
-                    }
-                });
-                wellIds = Array.from(wellIds.values());
                 if(mallMap.currentWellIds.length > 0){
                     wellIds = wellIds.filter(f => mallMap.currentWellIds.indexOf(f) > -1)
                 }
@@ -336,6 +340,17 @@ function zoomToBounds(expandable,transitionTime) {
                 drawStackedBar(myExtraData);
             } else if(mallMap.currentExtraChart === "pyramid"){
                 drawPyramid();
+            } else if(mallMap.currentExtraChart ===  "map"){
+                d3.selectAll(".wellCircle")
+                    .attr("visibility",function(){
+                        if(wellIds.indexOf(+this.id.split("well")[1]) > -1){
+                            return "visible"
+                        } else {
+                            return "hidden"
+                        }})
+                    .attr("fill",function(){
+                        return wellColours[+this.id.split("well")[1]];
+                    })
             }
         } else if (mallMap.wellExtraData[d.data.id] !== undefined) {
             //child of day level
@@ -343,11 +358,14 @@ function zoomToBounds(expandable,transitionTime) {
             enableButtons(".buttonGroupfooter_div#compare");
             mallMap.selectedParentNode = d.parent.data.id;
                 //top or bottom 25
+                var myExtraData = JSON.parse(JSON.stringify(mallMap.extraChartData));
+                var wellIds = new Set(), wellColours = {};
+                d.children.forEach(function(c) {
+                    wellIds.add(c.data.well_id);
+                    wellColours[c.data.well_id] = c.data.group_color;
+                });
+                wellIds = Array.from(wellIds.values());
                 if(mallMap.currentExtraChart === "bar") {
-                    var myExtraData = JSON.parse(JSON.stringify(mallMap.extraChartData));
-                    var wellIds = new Set();
-                    d.children.forEach(c => wellIds.add(c.data.well_id));
-                    wellIds = Array.from(wellIds.values());
                     if (mallMap.currentWellIds.length > 0) {
                         wellIds = wellIds.filter(f => mallMap.currentWellIds.indexOf(f) > -1)
                     }
@@ -355,6 +373,17 @@ function zoomToBounds(expandable,transitionTime) {
                     drawStackedBar(myExtraData);
                 } else if (mallMap.currentExtraChart === "pyramid"){
                     drawPyramid();
+                } else if(mallMap.currentExtraChart ===  "map"){
+                    d3.selectAll(".wellCircle")
+                        .attr("visibility",function(){
+                            if(wellIds.indexOf(+this.id.split("well")[1]) > -1){
+                                return "visible"
+                            } else {
+                                return "hidden"
+                            }})
+                        .attr("fill",function(){
+                            return wellColours[+this.id.split("well")[1]];
+                        })
                 }
         } else {
             mallMap.selectedParentNode = "";
@@ -1697,7 +1726,15 @@ function pyramidChart() {
                 .attr("width",d => xScales[d.index](d.value))
                 .attr("height",d => yScale.bandwidth()-2)
                 .attr("cursor","pointer")
-                .attr("fill",d => d.colour)
+                .attr("fill",function(d){
+                    if(mallMap.currentWellIds.length === 0){
+                        return d.colour;
+                    } else if(mallMap.currentWellIds.indexOf(d.well_id) > -1){
+                        return d.colour;
+                    } else {
+                        return "#F0F0F0";
+                    }
+                })
                 .on("mouseover",function(event,d){
                     d3.selectAll(".pyramidBar").attr("opacity",0.5);
                     d3.selectAll(".sunburstPath").attr("opacity",0.5);
@@ -1861,7 +1898,7 @@ function wellMap() {
         const zoom = d3.zoom()
             .on("zoom", zoomed);
 
-        const radiusScale = d3.scaleLinear().domain(d3.extent(myData, d => d.difference)).range([2,4]);
+        const radiusScale = d3.scaleLinear().domain(d3.extent(myData, d => d.difference)).range([3,10]);
 
         svg.call(zoom);
 
@@ -1961,6 +1998,8 @@ function wellMap() {
             var x1 = xExtent[1];
             var y0 = yExtent[0];
             var y1 = yExtent[1];
+            if(x0 === x1){x1 += 0.1};
+            if(y0 === y1){y1 += 0.1};
 
             var scale =  0.9 / Math.max((x1- x0) / width, (y1 - y0) / height);
 

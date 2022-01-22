@@ -19,6 +19,7 @@ var mallMap = {
     "selectedParentNode":"",
     "wellNames": {},
     "currentExtraChart": "bar",
-    "currentWellIds":[]
+    "currentWellIds":[],
+    "currentWellColours":{}
 
 };

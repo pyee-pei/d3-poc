@@ -65,13 +65,22 @@ function drawTooltipMallMap(myData,divId,selectedColor){
 
 function drawWellMap(){
 
-    d3.select("." + mallMap.extraChartDivId  + "Svg").selectAll("*").remove();
+    if(mallMap.currentExtraChart !== "map"){
+        mallMap.currentExtraChart = "map";
+        //quick win, will make this better
+        d3.select("." + mallMap.extraChartDivId  + "Svg").selectAll("*").remove();
+    }
+
     var svg = d3.select("." + mallMap.extraChartDivId + "Svg");
     svg.append("g").attr("class","zoomSvg" + mallMap.extraChartDivId);
     var height = +svg.attr("height");
     var width = +svg.attr("width");
 
-    var groupedByWell = Array.from(d3.rollup(mallMap.extraChartData,
+    var myExtraData = JSON.parse(JSON.stringify(mallMap.extraChartData));
+    if(mallMap.currentWellIds.length > 0){
+        myExtraData = myExtraData.filter(f => mallMap.currentWellIds.indexOf(+f.well_id) > -1);
+    }
+    var groupedByWell = Array.from(d3.rollup(myExtraData,
             v => d3.sum(v, s => Math.abs(s.actual_revenue_minus_royalty - s.ipc_revenue_minus_royalty)), d => d.well_id));
     var myData = [];
     groupedByWell.forEach(function(d){
@@ -99,27 +108,32 @@ function drawWellMap(){
 }
 
 function drawStackedBar(filteredData){
-
-    if(mallMap.currentExtraChart !== "bar"){
-        mallMap.currentExtraChart = "bar";
-        //quick win, will make this better
+    if(filteredData !== undefined && filteredData.length === 0){
         d3.select("." + mallMap.extraChartDivId  + "Svg").selectAll("*").remove();
+    } else {
+        if(mallMap.currentExtraChart !== "bar"){
+            mallMap.currentExtraChart = "bar";
+            //quick win, will make this better
+            d3.select("." + mallMap.extraChartDivId  + "Svg").selectAll("*").remove();
+        }
+        var svg = d3.select("." + mallMap.extraChartDivId + "Svg");
+        var height = +svg.attr("height");
+        var width = +svg.attr("width");
+        var margins = {"left":width*0.2,"right":width*0.2,"top":height*0.2,"bottom":height*0.2};
+
+        mallMap.stackedBarChart = stackedBarChart()
+            .width(width*0.6)
+            .height(height*0.6)
+            .margins(margins)
+            .barDateRange(mallMap.barDateRange)
+            .yAxisTransitionTime(filteredData === undefined ? 0 : 1000)
+            .myData(filteredData === undefined ? mallMap.extraChartData : filteredData)
+            .myClass(mallMap.extraChartDivId );
+
+        mallMap.stackedBarChart(svg);
     }
-    var svg = d3.select("." + mallMap.extraChartDivId + "Svg");
-    var height = +svg.attr("height");
-    var width = +svg.attr("width");
-    var margins = {"left":width*0.2,"right":width*0.2,"top":height*0.2,"bottom":height*0.2};
 
-    mallMap.stackedBarChart = stackedBarChart()
-        .width(width*0.6)
-        .height(height*0.6)
-        .margins(margins)
-        .barDateRange(mallMap.barDateRange)
-        .yAxisTransitionTime(filteredData === undefined ? 0 : 1000)
-        .myData(filteredData === undefined ? mallMap.extraChartData : filteredData)
-        .myClass(mallMap.extraChartDivId );
 
-    mallMap.stackedBarChart(svg);
 }
 
 function drawLineMultiples(){
