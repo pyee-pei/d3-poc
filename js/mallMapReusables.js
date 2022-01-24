@@ -890,7 +890,6 @@ function stackedBarChart() {
         yScale = "",
         yScaleProportion = "",
         svg = "",
-        filterOptions = [],
         barDateRange = "all",
         visibleBandwidth = 0,
         xDomain = [],

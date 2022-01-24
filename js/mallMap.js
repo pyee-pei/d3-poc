@@ -119,6 +119,7 @@ function drawWellMap(){
 }
 
 function drawStackedBar(filteredData){
+
     if(filteredData !== undefined && filteredData.length === 0){
         d3.select("." + mallMap.extraChartDivId  + "Svg").selectAll("*").remove();
     } else {

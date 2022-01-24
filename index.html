@@ -49,14 +49,18 @@
         }
 
     }
+    var clientId = 1009;
+    var keyDate = "2021-08-01";
+    var keyDateSplit = keyDate.split("-");
+    var keyDateFormatted = new Date(keyDateSplit[0],+keyDateSplit[1]-1,keyDateSplit[2]);
     var promises = [
         d3.json("https://prod-97.westus.logic.azure.com:443/workflows/909974398dd34ff3a28a0c468e54d2be/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=7gRYpMmX2thjblij6wfcbJMePRg9pFrr_Ppz-blAxbU",
-            {method: "POST",body:JSON.stringify({client_id:1009,key_date:"2021-08-01",n:25}),headers:{"Content-Type":"application/json"}}),
+            {method: "POST",body:JSON.stringify({client_id:clientId,key_date:keyDate,n:25}),headers:{"Content-Type":"application/json"}}),
         d3.json("https://prod-44.westus.logic.azure.com:443/workflows/f813d130506449c7aaf7e99e00776141/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=e-6x-Szn7DEoQDwAVwCSWmWXsJMFoQbMEV2VJbN6Suk"),
         d3.json("https://prod-129.westus.logic.azure.com:443/workflows/7f48f62137f54267a91e4b83687a2f83/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=F6ozaxNeplqKgzgQ7vgbV6_dKx97cHcLrKCxwB3eY1Y",
-            {method: "POST",body:JSON.stringify({client_id:1009}),headers:{"Content-Type":"application/json"}}),
+            {method: "POST",body:JSON.stringify({client_id:clientId}),headers:{"Content-Type":"application/json"}}),
         d3.json("https://prod-177.westus.logic.azure.com:443/workflows/c5fcf01bfec54a25a6a7a5a41c981d35/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=K1iAuIu-VbhfketSSHWOe5hHt2AO_lx0N8z_ceSNXK8",
-            {method: "POST",body:JSON.stringify({client_id:1009}),headers:{"Content-Type":"application/json"}}),
+            {method: "POST",body:JSON.stringify({client_id:clientId}),headers:{"Content-Type":"application/json"}}),
         d3.json("data/usStates.json"),
         d3.csv("data/stateCodes.csv"),
         d3.json("data/well_data.json"),
@@ -106,6 +110,7 @@
                 }
             })
         })
+        var dateNodes = {};
         all_datasets[1] = all_datasets[1][0];
         all_datasets[1].colors = {"functional":"#F0F0F0"};
         all_datasets[1].children = addColour(all_datasets[1].children);
@@ -120,9 +125,12 @@
                         c.colors[m.well_id] = m.color;
                     })
                 }
+                if(c.highlight_date_offset !== undefined){
+                    debugger;
+                }
                 if(c.children !== undefined){
                     addColour(c.children);
-                } else{
+                } else {
                     if (wellExtraData[c.id] !== undefined){
                         var extraChildren = [];
                         var sortType = c.name === "Beat" ? "descending" : "ascending";
