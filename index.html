@@ -221,10 +221,14 @@
                     if(this.id === "group"){
                         populateWells(wellsByGroup[this.value]);
                         wellIds = wellsByGroup[this.value];
+                    } else if(this.id === "functional"){
+                        wellIds = [];
                     }
                     mallMap.currentWellIds = wellIds;
                     var myExtraData = JSON.parse(JSON.stringify(mallMap.extraChartData));
-                    myExtraData = myExtraData.filter(f => wellIds.indexOf(+f.well_id) > -1);
+                    if(wellIds.length > 0){
+                        myExtraData = myExtraData.filter(f => wellIds.indexOf(+f.well_id) > -1);
+                    }
                     mallMap.selectedColor = this.value;
                     initialiseDashboard(mallMap.mainData, mallMap.mapData,"chart_div","breadcrumb_div","footer_div","extra_chart_div",myExtraData);
                 });
