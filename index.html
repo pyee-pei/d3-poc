@@ -50,7 +50,7 @@
 
     }
     var clientId = 1009;
-    var keyDate = "2021-08-01";
+    var keyDate = "2021-04-30";
     var keyDateSplit = keyDate.split("-");
     var keyDateFormatted = new Date(keyDateSplit[0],+keyDateSplit[1]-1,keyDateSplit[2]);
     var promises = [
@@ -114,6 +114,7 @@
         all_datasets[1] = all_datasets[1][0];
         all_datasets[1].colors = {"functional":"#F0F0F0"};
         all_datasets[1].children = addColour(all_datasets[1].children);
+        debugger;
 
         function addColour(myChildren){
             myChildren.forEach(function(c){
@@ -126,7 +127,9 @@
                     })
                 }
                 if(c.highlight_date_offset !== undefined){
-                    debugger;
+                    var endDate = d3.timeDay.offset(keyDateFormatted,-c.highlight_date_offset);
+                    var startDate = d3.timeDay.offset(endDate,-(c.highlight_day_count - 1));
+                    dateNodes[c.id] = [startDate,endDate,c.highlight_day_count,c.highlight_date_offset]
                 }
                 if(c.children !== undefined){
                     addColour(c.children);
