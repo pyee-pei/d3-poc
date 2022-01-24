@@ -260,6 +260,7 @@ function zoomToBounds(expandable,transitionTime) {
                     if(d.data.well_id !== undefined){
                         mallMap.selectedColor = d.data.well_id;
                         var wellIds = [d.data.well_id];
+                        mallMap.currentWellIds = wellIds;
                         var myExtraData = JSON.parse(JSON.stringify(mallMap.extraChartData));
                         myExtraData = myExtraData.filter(f => wellIds.indexOf(+f.well_id) > -1);
                         document.getElementById("radio_" + d.data.well_id).checked = true
@@ -1947,9 +1948,8 @@ function wellMap() {
 
         wellsGroup.select(".wellCircle")
             .attr("id",d => "well" + d.well_id)
-            .attr("fill", "white")
+            .attr("fill", d => d.fill === null ? "white" : d.fill)
             .attr("fill-opacity",0.4)
-            .attr("fill", "white")
             .attr("stroke","transparent")
             .attr("stroke-width",3)
             .attr("r",d => radiusScale(d.difference))
