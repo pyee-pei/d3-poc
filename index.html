@@ -33,6 +33,7 @@
 <script type="text/javascript" src="js/mallMap.js"></script>
 <script type="text/javascript" src="js/mallMapReusables.js"></script>
 <script type="text/javascript" src="js/mallMapProperties.js"></script>
+
 <script>
 
     function downloadWellData(){
@@ -223,6 +224,11 @@
                         wellIds = wellsByGroup[this.value];
                     } else if(this.id === "functional"){
                         wellIds = [];
+                    }
+                    if (wellIds.length === 1) {
+                        disableButtons(".buttonGroupfooter_div#tile");
+                    } else {
+                        enableButtons(".buttonGroupfooter_div#tile");
                     }
                     mallMap.currentWellIds = wellIds;
                     var myExtraData = JSON.parse(JSON.stringify(mallMap.extraChartData));

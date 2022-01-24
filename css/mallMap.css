@@ -61,7 +61,9 @@ body{
   height:calc(100vh - 200px);
   float:left;
 }
-
+#extra_chart_div{
+  overflow-y: auto;
+}
 #footer_div {
   width: 100vw;
   height:120px;

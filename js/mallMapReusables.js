@@ -261,6 +261,7 @@ function zoomToBounds(expandable,transitionTime) {
                         mallMap.selectedColor = d.data.well_id;
                         var wellIds = [d.data.well_id];
                         mallMap.currentWellIds = wellIds;
+                        disableButtons(".buttonGroupfooter_div#tile");
                         var myExtraData = JSON.parse(JSON.stringify(mallMap.extraChartData));
                         myExtraData = myExtraData.filter(f => wellIds.indexOf(+f.well_id) > -1);
                         document.getElementById("radio_" + d.data.well_id).checked = true
@@ -301,26 +302,12 @@ function zoomToBounds(expandable,transitionTime) {
             });
     }
 
-    function enableButtons(myGroup){
-        d3.select(myGroup)
-            .attr("opacity", 1)
-            .attr("pointer-events", "all")
-            .attr("cursor","pointer" );
-    }
-
-    function disableButtons(myGroup){
-        d3.select(myGroup)
-            .attr("opacity", 0)
-            .attr("pointer-events", "none")
-            .attr("cursor","not-allowed" );
-    }
-
     function addFoldoutData(d){
 
         if(d.data.name.includes("Day")){
             mallMap.selectedParentNode = d.data.id;
-            enableButtons(".buttonGroupfooter_div#tile");
             enableButtons(".buttonGroupfooter_div#compare");
+            enableButtons(".buttonGroupfooter_div#tile");
             var wellIds = new Set(),wellColours = {};
             d.children.forEach(function(c){
                 if(c.children !== undefined){
@@ -352,19 +339,24 @@ function zoomToBounds(expandable,transitionTime) {
                     .attr("fill",function(){
                         return wellColours[+this.id.split("well")[1]];
                     })
+            } else if (mallMap.currentExtraChart === "tile"){
+                drawLineMultiples();
             }
         } else if (mallMap.wellExtraData[d.data.id] !== undefined) {
             //child of day level
-            enableButtons(".buttonGroupfooter_div#tile");
             enableButtons(".buttonGroupfooter_div#compare");
+            enableButtons(".buttonGroupfooter_div#tile");
             mallMap.selectedParentNode = d.parent.data.id;
                 //top or bottom 25
                 var myExtraData = JSON.parse(JSON.stringify(mallMap.extraChartData));
                 var wellIds = new Set(), wellColours = {};
-                d.children.forEach(function(c) {
-                    wellIds.add(c.data.well_id);
-                    wellColours[c.data.well_id] = c.data.group_color;
-                });
+
+
+                var myKeys = Object.keys(mallMap.wellExtraData).filter(f => f.includes(mallMap.selectedParentNode));
+                myKeys.forEach(k => mallMap.wellExtraData[k].forEach(function(e){
+                    wellIds.add(e.well_id);
+                    wellColours[e.well_id] = e.node_color;
+                }))
                 wellIds = Array.from(wellIds.values());
                 if(mallMap.currentExtraChart === "bar") {
                     if (mallMap.currentWellIds.length > 0) {
@@ -385,17 +377,27 @@ function zoomToBounds(expandable,transitionTime) {
                         .attr("fill",function(){
                             return wellColours[+this.id.split("well")[1]];
                         })
+                } else if (mallMap.currentExtraChart === "tile"){
+                    drawLineMultiples();
                 }
         } else {
             mallMap.selectedParentNode = "";
-            disableButtons(".buttonGroupfooter_div#tile");
             disableButtons(".buttonGroupfooter_div#compare");
             //reset
             var myExtraData = JSON.parse(JSON.stringify(mallMap.extraChartData));
             if (mallMap.currentWellIds.length > 0) {
                 myExtraData = myExtraData.filter(f => mallMap.currentWellIds.indexOf(+f.well_id) > -1);
-            };
-            drawStackedBar(myExtraData);
+            }
+            if (mallMap.currentWellIds.length === 1) {
+                disableButtons(".buttonGroupfooter_div#tile");
+            } else {
+                enableButtons(".buttonGroupfooter_div#tile");
+            }
+            if (mallMap.currentExtraChart === "tile" && mallMap.currentWellIds.length !== 1){
+                drawLineMultiples();
+            } else {
+                drawStackedBar(myExtraData);
+            }
         }
         //check if ancesters are expandable
         var descendantsExtraData = d.descendants().filter(f => Object.keys(mallMap.wellExtraData).includes(f.data.id));
@@ -504,14 +506,17 @@ function zoomToBounds(expandable,transitionTime) {
                         addFoldoutData(myRoot);
                     } else {
                         mallMap.selectedParentNode = "";
-                        disableButtons(".buttonGroupfooter_div#tile");
                         disableButtons(".buttonGroupfooter_div#compare");
                         //reset
                         var myExtraData = JSON.parse(JSON.stringify(mallMap.extraChartData));
                         if(mallMap.currentWellIds.length > 0){
                             myExtraData = myExtraData.filter(f => mallMap.currentWellIds.indexOf(+f.well_id) > -1);
                         }
-                        drawStackedBar(myExtraData);
+                        if(mallMap.currentExtraChart === "tile" && mallMap.currentWellIds.length !== 1){
+                            drawLineMultiples();
+                        } else {
+                            drawStackedBar(myExtraData);
+                        }
                     }
                     //draw chart and zoom.
                     drawSunburst(myRoot,allData);
@@ -767,9 +772,9 @@ function miniMallMapChart() {
 
         buttonGroup
             .attr("id",d => d)
-            .attr("opacity",d => d === "bar"  || d === "map" || d === "file"? 1 : 0)
-            .attr("pointer-events",d => d === "bar"  || d === "map" || d === "file"? "all" : "none")
-            .attr("cursor",d => d === "bar"  || d === "map" || d === "file"? "pointer" : "not-allowed");
+            .attr("opacity",d => d !== "compare" ? (d === "tile" && mallMap.currentWellIds.length === 1 ? 0 : 1) : 0)
+            .attr("pointer-events",d => d !== "compare"? (d === "tile" && mallMap.currentWellIds.length === 1 ? "none" : "all") : "none")
+            .attr("cursor",d => d !== "compare"? (d === "tile" && mallMap.currentWellIds.length === 1 ? "not-allowed" : "pointer") : "not-allowed");
 
         buttonGroup.select(".buttonRect")
             .attr("width",buttonWidth)
@@ -1398,15 +1403,16 @@ function lineMultipleChart() {
         height=0,
         myData = [],
         myClass="",
-        filterType = "topN",
+        filterType = "",
         yScaleUniversal = true;
 
     function my(svg) {
 
-        var myPositions = new Set();
-        myData.forEach(f => myPositions.add(f.ipc_delta_flag))
-        myPositions = Array.from(myPositions.values());
-        filterType = myPositions[0];
+        var myPositions = [];
+        if(mallMap.selectedParentNode !== ""){
+            myPositions = ["beat","middle","miss"];
+            filterType = myPositions[0];
+        }
 
         var chartWidth = (width - margins.left - margins.right)/5;
         var chartHeight = (height - margins.top - margins.bottom)/5;
@@ -1416,10 +1422,37 @@ function lineMultipleChart() {
 
         function drawMultiples(){
 
-            var filteredData = myData.filter(f => f.ipc_delta_flag === filterType);
-
+            var filteredData = JSON.parse(JSON.stringify(myData));
+            if(mallMap.selectedParentNode !== ""){
+                var wellIds = new Set();
+                var myKeys = Object.keys(mallMap.wellExtraData).filter(f => f.includes(mallMap.selectedParentNode));
+                myKeys.forEach(k => mallMap.wellExtraData[k].forEach(function(e){
+                    if(filterType === "beat" && e.ipc_delta_flag === "topN"){
+                        wellIds.add(e.well_id);
+                    } else if(filterType === "miss" && e.ipc_delta_flag === "bottomN"){
+                        wellIds.add(e.well_id);
+                    } else if (filterType === "middle"){
+                        wellIds.add(e.well_id);
+                    }
+                }))
+                wellIds = Array.from(wellIds.values());
+                if(filterType === "middle"){
+                    filteredData = filteredData.filter(f => wellIds.indexOf(+f.well_id) === -1);
+                } else {
+                    filteredData = filteredData.filter(f => wellIds.indexOf(+f.well_id) > -1);
+                }
+            }
+            if(mallMap.currentWellIds.length > 0){
+                filteredData = filteredData.filter(f => mallMap.currentWellIds.indexOf(+f.well_id) > -1);
+            }
+            filteredData = filteredData.sort((a,b) => d3.ascending(mallMap.wellNames[a.well_id],mallMap.wellNames[b.well_id]))
             var wellGroup = d3.group(filteredData, d => d.well_id);
             wellGroup = Array.from(wellGroup);
+            var rows = parseInt(wellGroup.length/5) + (wellGroup.length % 5 === 0 ? 0 : 1);
+            var svgHeight = margins.top + margins.bottom + (rows * chartHeight);
+            if(height < svgHeight){
+               svg.style("height",svgHeight + "px");
+            }
 
             const yScale = d3.scaleLinear().domain([0,
                 d3.max(filteredData, d => Math.max(d.ipc_revenue_minus_royalty,d.actual_revenue_minus_royalty))])
@@ -1446,7 +1479,7 @@ function lineMultipleChart() {
                 .y1(yScale(0));
 
             const chartGroup = svg.selectAll('.chartGroup' + myClass)
-                .data(wellGroup)
+                .data(wellGroup, d => d[0])
                 .join(function(group){
                     var enter = group.append("g").attr("class","tileGroup chartGroup" + myClass);
                     enter.append("rect").attr("class","wellRect");
@@ -1511,7 +1544,7 @@ function lineMultipleChart() {
 
         filterGroup.select(".filterText")
             .attr("id",(d,i) => "filterText" + i)
-            .attr("fill",d => d.includes("top") ? "#31a354":"#cb181d")
+            .attr("fill",d => d.includes("beat") ? "#31a354":(d.includes("miss") ? "#cb181d":  "#707070"))
             .attr("opacity",(d,i) => i === 0 ? 1 : 0.2)
             .attr("y",margins.top/2)
             .attr("cursor","pointer")

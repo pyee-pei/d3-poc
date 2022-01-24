@@ -1,4 +1,4 @@
-
+let originalHeight = 0;
 
 function initialiseDashboard(myData,mapData,divId,breadcrumbDivId,footerDivId,extraChartDivId,filteredBarData){
 
@@ -71,7 +71,7 @@ function drawWellMap(){
         d3.select("." + mallMap.extraChartDivId  + "Svg").selectAll("*").remove();
     }
 
-    var svg = d3.select("." + mallMap.extraChartDivId + "Svg");
+    var svg = d3.select("." + mallMap.extraChartDivId + "Svg").style("height",originalHeight + "px");
     svg.append("g").attr("class","zoomSvg" + mallMap.extraChartDivId);
     var height = +svg.attr("height");
     var width = +svg.attr("width");
@@ -127,7 +127,7 @@ function drawStackedBar(filteredData){
             //quick win, will make this better
             d3.select("." + mallMap.extraChartDivId  + "Svg").selectAll("*").remove();
         }
-        var svg = d3.select("." + mallMap.extraChartDivId + "Svg");
+        var svg = d3.select("." + mallMap.extraChartDivId + "Svg").style("height",originalHeight + "px");;
         var height = +svg.attr("height");
         var width = +svg.attr("width");
         var margins = {"left":width*0.2,"right":width*0.2,"top":height*0.2,"bottom":height*0.2};
@@ -149,20 +149,14 @@ function drawStackedBar(filteredData){
 
 function drawLineMultiples(){
 
+    var chartData = JSON.parse(JSON.stringify(mallMap.extraChartData));
     var wellIds = new Set();
-    var selectedData = mallMap.wellExtraData[mallMap.selectedParentNode];
-    if(selectedData === undefined){
-        selectedData = [];
-        var myKeys = Object.keys(mallMap.wellExtraData).filter(f => f.includes(mallMap.selectedParentNode));
-        myKeys.forEach(k => selectedData = selectedData.concat(mallMap.wellExtraData[k]))
+    if(mallMap.currentExtraChart !== "tile"){
+        mallMap.currentExtraChart = "tile";
+        d3.select("." + mallMap.extraChartDivId  + "Svg").selectAll("*").remove();
     }
-    selectedData.forEach(d => wellIds.add(d.well_id));
-    var chartData = [];
-    wellIds.forEach(d => chartData = chartData.concat(mallMap.extraChartData.filter(f => +f.well_id === d)));
-    chartData.map(m =>  m.ipc_delta_flag = selectedData.find(f => f.well_id === +m.well_id).ipc_delta_flag);
-    //quick win, will make this better
-    d3.select("." + mallMap.extraChartDivId  + "Svg").selectAll("*").remove();
-    var svg = d3.select("." + mallMap.extraChartDivId  + "Svg");
+
+    var svg = d3.select("." + mallMap.extraChartDivId  + "Svg").style("height",originalHeight + "px");;
 
     var height = +svg.attr("height");
     var width = +svg.attr("width");
@@ -188,7 +182,7 @@ function drawPyramid(){
         //quick win, will make this better
         d3.select("." + mallMap.extraChartDivId  + "Svg").selectAll("*").remove();
     }
-    var svg = d3.select("." + mallMap.extraChartDivId  + "Svg");
+    var svg = d3.select("." + mallMap.extraChartDivId  + "Svg").style("height",originalHeight + "px");;
 
     var selectedData = mallMap.wellExtraData[mallMap.selectedParentNode];
     if(selectedData === undefined){
@@ -211,7 +205,22 @@ function drawPyramid(){
     my_chart(svg);
 }
 
+function enableButtons(myGroup){
+    d3.select(myGroup)
+        .attr("opacity", 1)
+        .attr("pointer-events", "all")
+        .attr("cursor","pointer" );
+}
+
+function disableButtons(myGroup){
+    d3.select(myGroup)
+        .attr("opacity", 0)
+        .attr("pointer-events", "none")
+        .attr("cursor","not-allowed" );
+}
+
 function drawSvg(divId,zoomSvg){
+
 
     var chart_div = document.getElementById(divId);
     var width = chart_div.clientWidth;
@@ -226,6 +235,7 @@ function drawSvg(divId,zoomSvg){
             .attr("height",height);
 
         if(zoomSvg === true){
+            originalHeight = height;
             //zoomSvg and texture added for main chart svg
             svg.append("g").attr("class","zoomSvg" + divId);
             mallMap.texture = textures.lines().size(4).strokeWidth(0.5).stroke("white");
