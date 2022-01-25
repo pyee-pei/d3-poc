@@ -19,12 +19,19 @@ body{
   float: left;
   border: white 3px solid;
   width: calc(12vw - 10px);
-  height:20px;
+  height:70px;
   padding-left: 4px;
   background-color: #F0F0F0;
   text-align: left;
 }
+.slider{
+  width: 6vw;
+  height: 9px;
+}
 
+.slider_span{
+  font-size: 12px;
+}
 #group_div{
   float: left;
   text-align: left;
@@ -45,7 +52,7 @@ body{
   padding-left: 4px;
   background-color: #D0D0D0;
   width: calc(12vw - 10px);
-  height: calc(100vh - 306px);
+  height: calc(100vh - 356px);
   overflow-x: hidden;
   overflow-y: auto;
   border: white 3px solid;

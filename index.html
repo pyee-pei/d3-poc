@@ -13,6 +13,12 @@
 <body>
 <div id="header_div">
     <div id="functional_div">
+        <span class="slider_span">
+        Depth:&nbsp;
+        <input type="range" class="slider" id="depth" name="depth" min="5" max="10" value="5">&nbsp;<span id="depth_val">5</span><br>
+        N:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        <input type="range"class="slider"  id="n" name="n" min="5" max="25" value="25">&nbsp;<span id="n_val">25</span><br><br>
+            </span>
         <input type="radio" class="datasetChoice" name="datasetChoice" id="functional" value="functional" checked><label for="functional" style="font-weight: bold;">FUNCTIONAL</label>
     </div>
     <div id="group_div">
@@ -50,7 +56,7 @@
             {method: "POST",body:JSON.stringify({client_id:clientId}),headers:{"Content-Type":"application/json"}}),
         d3.json("data/usStates.json"),
         d3.csv("data/stateCodes.csv"),
-        d3.json("data/well_data.json"),
+        d3.json("https://prod-105.westus.logic.azure.com:443/workflows/96b20533cfe147428096931541df7ec8/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=6Exj1Po-4hS1tQSNQzv4dVmp85h8L_uIgwOjfxXAuaA"),
         d3.csv("data/ytd_production_data_min.csv")
     ]
 
@@ -67,7 +73,13 @@
         setWellExtraData();
         //save global vars
         mallMap.wellExtraData = wellExtraData;
-        mallMap.wellData = all_datasets[6];
+
+        const clientWellData = all_datasets[6].find(f => f.client_id === clientId);
+        mallMap.wellData = clientWellData.well_data;
+        let barMenuGroups = [];
+        clientWellData.menu_groups.forEach(d => barMenuGroups.push(d.group));
+        mallMap.barMenuGroups = barMenuGroups;
+        debugger;
         mallMap.extraChartData = all_datasets[7];
         mallMap.extraChartData.map(m => m.date = convertDate(m.date))
         //build colourMatrix, matrixWellIds + groupNames from all_datasets[2] - prod-129

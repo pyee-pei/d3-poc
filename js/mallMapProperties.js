@@ -21,7 +21,9 @@ var mallMap = {
     "currentExtraChart": "bar",
     "currentWellIds":[],
     "currentWellColours":{},
-    "dateNodes":{}
+    "dateNodes":{},
+    "barMenuGroups":[]
+
 
 
 };

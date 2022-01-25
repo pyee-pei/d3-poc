@@ -877,7 +877,7 @@ function stackedBarChart() {
         height=0,
         myData = [],
         myClass="",
-        stackType = "well_orientation",
+        stackType = "",
         currentData = [],
         currentDataIndex = "0",
         barLayout = "stack",
@@ -898,6 +898,7 @@ function stackedBarChart() {
     function my(mySvg) {
         svg = mySvg;
 
+        stackType =  mallMap.barMenuGroups[0];
         myData = myData.sort((a,b) => d3.ascending(a.date,b.date));
 
         let dateGroup = d3.group(myData, d => d.date);
@@ -1011,7 +1012,7 @@ function stackedBarChart() {
 
         barOptionsGroup.attr("transform","translate(" + ((width - barOptionsX)/2) + ",0)");
 
-        const stackOptions = ["well_orientation","route_name"];
+        const stackOptions = mallMap.barMenuGroups;
 
         const stackOptionsGroup = svg.selectAll('.stackOptionsGroup' + myClass)
             .data(stackOptions)
@@ -1034,11 +1035,11 @@ function stackedBarChart() {
                 stackType = d;
                 currentData = getDatabyStackOption();
                 drawBar(currentData[currentDataIndex],0);
-                drawLegend(myKeys);
+                drawLegend(myKeys.filter(f => f !== undefined));
 
             });
 
-        drawLegend(myKeys);
+        drawLegend(myKeys.filter(f => f !== undefined));
 
         function drawLegend(myLegendKeys){
 
@@ -1112,23 +1113,23 @@ function stackedBarChart() {
                 var myTotal = d3.sum(d[1], s => s.ipc_revenue_minus_royalty);
                 var actualTotal = d3.sum(d[1], s => s.actual_revenue_minus_royalty);
                 var stackData = Array.from(d3.rollup(d[1],v => d3.sum(v, s => s.actual_revenue_minus_royalty)
-                    ,g => mallMap.wellData.find(f => f.well_id === g.well_id)[stackType]));
+                    ,g => mallMap.wellData.find(f => f.well_id === +g.well_id)[stackType]));
                 var ipcStackData = Array.from(d3.rollup(d[1],v => d3.sum(v, s => s.ipc_revenue_minus_royalty)
-                    ,g => mallMap.wellData.find(f => f.well_id === g.well_id)[stackType]));
+                    ,g => mallMap.wellData.find(f => f.well_id === +g.well_id)[stackType]));
                 barData.push(getEntry(d[0],myTotal,actualTotal,stackData,ipcStackData));
                 var filteredData = d[1].filter(f => f.position_flag === "topN")
                 myTotal = d3.sum(filteredData, s => s.ipc_revenue_minus_royalty);
                 actualTotal = d3.sum(filteredData, s => s.actual_revenue_minus_royalty);
-                stackData = Array.from(d3.rollup(filteredData,v => d3.sum(v, s => s.actual_revenue_minus_royalty),g => mallMap.wellData.find(f => f.well_id === g.well_id)[stackType]));
-                ipcStackData = Array.from(d3.rollup(filteredData,v => d3.sum(v, s => s.ipc_revenue_minus_royalty),g => mallMap.wellData.find(f => f.well_id === g.well_id)[stackType]));
+                stackData = Array.from(d3.rollup(filteredData,v => d3.sum(v, s => s.actual_revenue_minus_royalty),g => mallMap.wellData.find(f => f.well_id === +g.well_id)[stackType]));
+                ipcStackData = Array.from(d3.rollup(filteredData,v => d3.sum(v, s => s.ipc_revenue_minus_royalty),g => mallMap.wellData.find(f => f.well_id === +g.well_id)[stackType]));
                 barDataTop25.push(getEntry(d[0],myTotal,actualTotal,stackData,ipcStackData));
                 filteredData = d[1].filter(f => f.position_flag === "bottomN")
                 myTotal = d3.sum(filteredData, s => s.ipc_revenue_minus_royalty);
                 actualTotal = d3.sum(filteredData, s => s.actual_revenue_minus_royalty);
                 stackData = Array.from(d3.rollup(filteredData,v => d3.sum(v, s => s.actual_revenue_minus_royalty)
-                    ,g => mallMap.wellData.find(f => f.well_id === g.well_id)[stackType]));
+                    ,g => mallMap.wellData.find(f => f.well_id === +g.well_id)[stackType]));
                 ipcStackData = Array.from(d3.rollup(filteredData,v => d3.sum(v, s => s.actual_revenue_minus_royalty)
-                    ,g => mallMap.wellData.find(f => f.well_id === g.well_id)[stackType]));
+                    ,g => mallMap.wellData.find(f => f.well_id === +g.well_id)[stackType]));
                 barDataBottom25.push(getEntry(d[0],myTotal,actualTotal,stackData,ipcStackData));
             })
 
