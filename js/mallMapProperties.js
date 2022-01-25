@@ -20,6 +20,8 @@ var mallMap = {
     "wellNames": {},
     "currentExtraChart": "bar",
     "currentWellIds":[],
-    "currentWellColours":{}
+    "currentWellColours":{},
+    "dateNodes":{}
+
 
 };

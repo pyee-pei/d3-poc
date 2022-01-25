@@ -917,6 +917,7 @@ function stackedBarChart() {
         yScale = "",scaleNumber = 0, myKeys = "",yMax = 0;
 
         if(d3.select(".xAxis" + myClass)._groups[0][0] === null) {
+            svg.append("rect").attr("class","dateRect" + myClass);
             svg.append("g").attr("class","chartGroup"  + myClass);
             svg.append('clipPath').attr('id', 'barClipPath' + myClass)
                 .append('rect').attr('class','barClipRect' + myClass);
@@ -929,6 +930,18 @@ function stackedBarChart() {
             svg.append("g").attr("class","zeroLine" + myClass);
             svg.append("path").attr("class","ipcLine" + myClass);
         }
+
+        var currentDateNodes = mallMap.dateNodes[mallMap.selectedParentNode];
+        d3.select(".dateRect" + myClass)
+            .attr("x",currentDateNodes === undefined ? 0 :
+                xScaleTime(currentDateNodes[0])
+            )
+            .attr("width",currentDateNodes === undefined ? width :
+                xScaleTime(currentDateNodes[1]) - xScaleTime(currentDateNodes[0]))
+            .attr("height",height)
+            .attr("fill","gold")
+            .attr("visibility",currentDateNodes === undefined ? "hidden":"visible")
+            .attr("transform","translate(" + margins.left + "," +  margins.top + ")");
 
         d3.select(".chartGroup" + myClass)
             .attr('clip-path', 'url(#barClipPath' + myClass + ')');
