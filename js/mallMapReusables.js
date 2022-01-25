@@ -265,7 +265,7 @@ function zoomToBounds(expandable,transitionTime) {
                         var myExtraData = JSON.parse(JSON.stringify(mallMap.extraChartData));
                         myExtraData = myExtraData.filter(f => wellIds.indexOf(+f.well_id) > -1);
                         document.getElementById("radio_" + d.data.well_id).checked = true
-                        initialiseDashboard(mallMap.mainData, mallMap.mapData,"chart_div","breadcrumb_div","footer_div","extra_chart_div",myExtraData);
+                        drawDashboard(mallMap.mainData, mallMap.mapData,"chart_div","breadcrumb_div","footer_div","extra_chart_div",myExtraData);
                         drawBreadcrumbs([{"depth":0,"label":"Home","fill":"white"},{"depth":0,"label":"BACK","fill":"#F0F0F0", "data":sunburstData.find(f => f.depth === d3.min(sunburstData, m => m.depth)),"breadcrumbs":currentBreadcrumbData}])
 
                     } else {

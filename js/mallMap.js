@@ -1,6 +1,6 @@
 let originalHeight = 0;
 
-function initialiseDashboard(myData,mapData,divId,breadcrumbDivId,footerDivId,extraChartDivId,filteredBarData){
+function drawDashboard(myData,mapData,divId,breadcrumbDivId,footerDivId,extraChartDivId,filteredBarData){
 
     //draw svg for breadcrumb,chart and footer
     drawSvg(divId,true);

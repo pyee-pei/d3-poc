@@ -65,6 +65,7 @@ body{
   overflow-y: auto;
 }
 #footer_div {
+
   width: 100vw;
   height:120px;
   background-color: #F0F0F0;
@@ -99,4 +100,12 @@ body{
 
 .axis path, .axis text {
   fill: #707070;
+}
+
+.groupInputLabel, .wellInputLabel{
+  font-size: 12px;
+}
+
+.wellInput{
+  height: 10px;
 }
