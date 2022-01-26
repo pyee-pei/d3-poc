@@ -1099,7 +1099,7 @@ function stackedBarChart() {
         function getDatabyStackOption(){
 
             let myKeys = new Set();
-            mallMap.wellData.map(m => m[stackType] === "" ? "vertical" : m[stackType]);
+            mallMap.wellData.map(m => m[stackType] = (m[stackType] === undefined ? "NO DATA" : m[stackType]));
             mallMap.wellData.forEach(d => myKeys.add(d[stackType]));
             myKeys = Array.from(myKeys);
 
