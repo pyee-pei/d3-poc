@@ -15,7 +15,7 @@
     <div id="functional_div">
         <span class="slider_span">
         Depth:&nbsp;
-        <input type="range" class="slider" id="depth" name="depth" min="5" max="10" value="5">&nbsp;<span id="depth_val">5</span><br>
+        <input type="range" class="slider" id="depth" name="depth" min="4" max="6" value="5">&nbsp;<span id="depth_val">4</span><br>
         N:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
         <input type="range"class="slider"  id="n" name="n" min="5" max="25" value="25">&nbsp;<span id="n_val">25</span><br><br>
             </span>
@@ -68,6 +68,27 @@
 
     function ready(all_datasets) {
 
+        var wellsN = 25;
+        var maxDepth = 7;
+
+        d3.selectAll(".slider")
+            .on("input",function(d){
+                d3.select("#" + this.id + "_val").html(this.value);
+            })
+            .on("change",function(d){
+                if(this.id ==="n"){
+                    wellsN = this.value;
+                    setWellExtraData();
+                    mallMap.wellExtraData = wellExtraData;
+                } else {
+                   // maxDepth = this.value;
+                }
+                mallMap.mainData = JSON.parse(JSON.stringify(all_datasets[1]));
+                mallMap.mainData.colors = {"functional":"#F0F0F0"};
+                mallMap.mainData.children = addColour(mallMap.mainData.children);
+                drawDashboard(mallMap.mainData,mallMap.mapData,"chart_div","breadcrumb_div","footer_div","extra_chart_div");
+
+            })
         //convert all_datasets[0] (prod-97) into wellExtraData format
         var wellExtraData = {}
         setWellExtraData();
@@ -79,7 +100,6 @@
         let barMenuGroups = [];
         clientWellData.menu_groups.forEach(d => barMenuGroups.push(d.group));
         mallMap.barMenuGroups = barMenuGroups;
-        debugger;
         mallMap.extraChartData = all_datasets[7];
         mallMap.extraChartData.map(m => m.date = convertDate(m.date))
         //build colourMatrix, matrixWellIds + groupNames from all_datasets[2] - prod-129
@@ -91,12 +111,12 @@
         //now add colours, and start/end dates or ExtraData if it is provided for relevant node
         var dateNodes = {};
         all_datasets[1] = all_datasets[1][0];
-        all_datasets[1].colors = {"functional":"#F0F0F0"};
-        all_datasets[1].children = addColour(all_datasets[1].children);
+        mallMap.mainData = JSON.parse(JSON.stringify(all_datasets[1]));
+        mallMap.mainData.colors = {"functional":"#F0F0F0"};
+        mallMap.mainData.children = addColour(mallMap.mainData.children);
         //set final global variables
         mallMap.dateNodes = dateNodes;
         mallMap.wellNames = wellNames;
-        mallMap.mainData = all_datasets[1];
         mallMap.mapData = all_datasets[4];
         //draw dashboard
         drawDashboard(mallMap.mainData,mallMap.mapData,"chart_div","breadcrumb_div","footer_div","extra_chart_div");
@@ -122,8 +142,15 @@
                     dateNodes[c.id] = [startDate,endDate]
                 }
                 if(c.children !== undefined){
+                    if(c.node_level < maxDepth){
+                        addColour(c.children);
+                    } else {
+                        c._children = c.children;
+                        c.children = undefined;
+                        addColour(c._children);
+                    }
                     //continue till you run out of children
-                    addColour(c.children);
+
                 } else {
                     if (wellExtraData[c.id] !== undefined){
                         //for children that have extra data, add the extra data (generally wells)
@@ -170,6 +197,7 @@
             nodeIds = Array.from(nodeIds.values());
             nodeIds.forEach(function(n){
                 wellExtraData[n] = all_datasets[0].filter(f => f.node_id === n);
+                wellExtraData[n] = wellExtraData[n].filter(f => f.node_rank <= wellsN);
                 var totalDifference = d3.sum(wellExtraData[n],s => s.actual_revenue - s.ipc_revenue);
                 wellExtraData[n].forEach(w => w.relativeDifference = (w.actual_revenue - w.ipc_revenue)/totalDifference)
             })

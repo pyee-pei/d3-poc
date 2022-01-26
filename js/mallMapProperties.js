@@ -22,7 +22,8 @@ var mallMap = {
     "currentWellIds":[],
     "currentWellColours":{},
     "dateNodes":{},
-    "barMenuGroups":[]
+    "barMenuGroups":[],
+    "maxDepth":4
 
 
 

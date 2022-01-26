@@ -308,15 +308,12 @@ function zoomToBounds(expandable,transitionTime) {
             mallMap.selectedParentNode = d.data.id;
             enableButtons(".buttonGroupfooter_div#compare");
             enableButtons(".buttonGroupfooter_div#tile");
-            var wellIds = new Set(),wellColours = {};
-            d.children.forEach(function(c){
-                if(c.children !== undefined){
-                    c.children.forEach(function(w){
-                        wellIds.add(w.data.well_id);
-                        wellColours[w.data.well_id] = w.data.group_color
-                    })
-                }
-            });
+            var wellIds = new Set(), wellColours = {};
+            var myKeys = Object.keys(mallMap.wellExtraData).filter(f => f.includes(mallMap.selectedParentNode));
+            myKeys.forEach(k => mallMap.wellExtraData[k].forEach(function(e){
+                wellIds.add(e.well_id);
+                wellColours[e.well_id] = e.node_color;
+            }))
             wellIds = Array.from(wellIds.values());
             //day level (parent of top or bottom N)
             if(mallMap.currentExtraChart === "bar"){
@@ -350,7 +347,6 @@ function zoomToBounds(expandable,transitionTime) {
                 //top or bottom 25
                 var myExtraData = JSON.parse(JSON.stringify(mallMap.extraChartData));
                 var wellIds = new Set(), wellColours = {};
-
 
                 var myKeys = Object.keys(mallMap.wellExtraData).filter(f => f.includes(mallMap.selectedParentNode));
                 myKeys.forEach(k => mallMap.wellExtraData[k].forEach(function(e){
@@ -399,15 +395,11 @@ function zoomToBounds(expandable,transitionTime) {
                 drawStackedBar(myExtraData);
             }
         }
-        //check if ancesters are expandable
-        var descendantsExtraData = d.descendants().filter(f => Object.keys(mallMap.wellExtraData).includes(f.data.id));
-        descendantsExtraData.forEach(function(e){
-        })
 
         var myCopy = {};
 
         myCopy = {"value":d.value,"name":d.data.name,"id":d.data.id,"colors":d.data.colors,"children":[]};
-        addChildren(d.children,myCopy);
+        addChildren(d.children === undefined ? d._children : d.children,myCopy);
 
         //copy the hierarchy
 
@@ -418,7 +410,7 @@ function zoomToBounds(expandable,transitionTime) {
         flattenCopy.map(m => m.foldoutPath = arc(m));
         d.descendants().map(function(m){
             //add foldoutPath,dimensions + transform to current data
-            var myFoldout = flattenCopy.find(f => f.data.id === m.data.id);
+            var myFoldout = flattenCopy.find(f => f.data.id === (m.data === undefined ? m.id : m.data.id));
             m.foldoutPath = myFoldout.foldoutPath;
             m.foldoutWidth = myFoldout.x1 - myFoldout.x0;
             m.foldoutHeight = myFoldout.depth === 0 ? 0 : (myFoldout.y0 + myFoldout.y1)/2;
@@ -433,11 +425,17 @@ function zoomToBounds(expandable,transitionTime) {
                 }
                 currentCopy.children.push({
                     "value":myValue,
-                    "name":c.data.name,
-                    "id":c.data.id,
-                    "colors":c.data.colors
+                    "name":c.data === undefined ? c.name : c.data.name,
+                    "id":c.data === undefined ? c.id : c.data.id,
+                    "colors":c.data === undefined ? c.colors : c.data.colors
                 })
+
                 var newChild = currentCopy.children[currentCopy.children.length-1];
+                if(c.data !== undefined){
+                    if(c.data._children !== undefined){
+                        c.children = c.data._children;
+                    }
+                }
                 if(c.children !== undefined){
                     newChild.children = [];
                     addChildren(c.children,newChild)
@@ -1290,7 +1288,7 @@ function stackedBarChart() {
             });
 
         stackGroup.select(".stackGroup")
-            .attr("fill",(d,i) => myKeys[i] === "remainder" ? "#fee0d2" : d3.schemeBlues[scaleNumber][scaleNumber-(i+1)])
+            .attr("fill",(d,i) => myKeys[i] === "remainder" ? "white" : d3.schemeBlues[scaleNumber][scaleNumber-(i+1)])
             .attr("transform","translate(" + margins.left + "," + margins.top + ")");
 
         const barGroup = stackGroup.select(".stackGroup").selectAll('.barGroup' + myClass)
@@ -1437,6 +1435,7 @@ function lineMultipleChart() {
 
             var filteredData = JSON.parse(JSON.stringify(myData));
             if(mallMap.selectedParentNode !== ""){
+                debugger;
                 var wellIds = new Set();
                 var myKeys = Object.keys(mallMap.wellExtraData).filter(f => f.includes(mallMap.selectedParentNode));
                 myKeys.forEach(k => mallMap.wellExtraData[k].forEach(function(e){
@@ -1496,6 +1495,7 @@ function lineMultipleChart() {
                 .join(function(group){
                     var enter = group.append("g").attr("class","tileGroup chartGroup" + myClass);
                     enter.append("rect").attr("class","wellRect");
+                    enter.append("rect").attr("class","wellDateRect");
                     enter.append("text").attr("class","wellLabel");
                     enter.append("text").attr("class","wellMaxLabel");
                     enter.append("path").attr("class","actualArea");
@@ -1503,10 +1503,24 @@ function lineMultipleChart() {
                     return enter;
                 });
 
+
             chartGroup
                 .attr("id",d => "well" + d[0])
                 .attr("transform",(d,i) => "translate(" + ((i % 5) * chartWidth)
-                    + "," + (parseInt(i/5) * chartHeight) + ")")
+                    + "," + (parseInt(i/5) * chartHeight) + ")");
+
+            var currentDateNodes = mallMap.dateNodes[mallMap.selectedParentNode];
+
+            chartGroup.select(".wellDateRect")
+                .attr("x",currentDateNodes === undefined ? 0 :
+                    xScale(currentDateNodes[0])
+                )
+                .attr("width",currentDateNodes === undefined ? chartWidth :
+                    xScale(currentDateNodes[1]) - xScale(currentDateNodes[0]))
+                .attr("height",chartHeight-10)
+                .attr("fill","gold")
+                .attr("visibility",currentDateNodes === undefined ? "hidden":"visible")
+                .attr("transform","translate(" + (margins.left+5) + "," +  (margins.top+5) + ")");
 
             chartGroup.select(".ipcLine")
                 .attr("d",d => line(d[1]))
