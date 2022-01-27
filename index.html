@@ -70,6 +70,7 @@
 
         var wellsN = 25;
         var maxDepth = 7;
+        mallMap.myWellCount = wellsN;
 
         d3.selectAll(".slider")
             .on("input",function(d){
@@ -78,6 +79,7 @@
             .on("change",function(d){
                 if(this.id ==="n"){
                     wellsN = this.value;
+                    mallMap.myWellCount = wellsN;
                     setWellExtraData();
                     mallMap.wellExtraData = wellExtraData;
                 } else {
