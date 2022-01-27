@@ -9,7 +9,7 @@ function drawDashboard(myData,mapData,divId,breadcrumbDivId,footerDivId,extraCha
     drawSvg(extraChartDivId,false);
     //draw map + minimap in footer
     drawMallMap(myData,divId,breadcrumbDivId);
-    drawMiniMallMap(myData,footerDivId);
+    drawMiniMallMap(mallMap.allDepthData,footerDivId);
     mallMap.extraChartDivId = extraChartDivId;
     drawStackedBar(filteredBarData);
 

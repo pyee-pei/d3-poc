@@ -19,7 +19,8 @@ function mallMapChart() {
         depthWidth = 0,
         arc = "",
         root = "",
-        currentBreadcrumbData = [{"depth":0,"label":"Home","fill":"white"}];
+        currentBreadcrumbData = [{"depth":0,"label":"Home","fill":"white"}],
+        allDepthRoot = {};
 
     function my(mySvg) {
 
@@ -42,6 +43,9 @@ function mallMapChart() {
         //format base data
         const myHierarchy = getHierarchy(myData);
         root = getPartition(myHierarchy);
+        const allDepthHierarchy = getHierarchy(mallMap.allDepthData);
+        allDepthRoot = getPartition(allDepthHierarchy);
+
         //draw breadcrumbs,chart and then zoomtobounds
         drawBreadcrumbs(currentBreadcrumbData)
         drawSunburst(root,true);
@@ -174,6 +178,9 @@ function zoomToBounds(expandable,transitionTime) {
         if(sunburstData.descendants !== undefined){
             sunburstData = sunburstData.descendants();
         }
+        if(sunburstData[0].data.expandable === undefined && sunburstData.find(f => f.expandedChildren === true) !== undefined){
+            sunburstData = sunburstData.filter(f => f.data.node_level <= mallMap.maxDepth);
+        }
         //calculate depthWidth (used for label visibility)
         var minDepth = d3.min(sunburstData, d => d.depth);
         var maxDepth = d3.max(sunburstData, d => d.depth);
@@ -190,7 +197,7 @@ function zoomToBounds(expandable,transitionTime) {
 
         //path group
         const pathGroup = svg.selectAll('.pathGroup' + myClass)
-            .data(sunburstData)
+            .data(sunburstData, d => d.data.id)
             .join(function(group){
                 var enter = group.append("g").attr("class","pathGroup" + myClass);
                 enter.append("path").attr("class","sunburstPath");
@@ -275,6 +282,8 @@ function zoomToBounds(expandable,transitionTime) {
                         //if expandable, add foldoutdata
                         if(d.data.expandable !== undefined){
                             addFoldoutData(d);
+                        } else {
+                            debugger;
                         }
                         //redraw sunburst and zoom.
                         drawSunburst(d,false);
@@ -397,9 +406,13 @@ function zoomToBounds(expandable,transitionTime) {
         }
 
         var myCopy = {};
-
+        if(d.data._children !== undefined){
+            d.children = allDepthRoot.descendants().find(f => f.data.id === d.data.id).children;
+            d.data._children = undefined;
+            d.expandedChildren = true;
+        }
         myCopy = {"value":d.value,"name":d.data.name,"id":d.data.id,"colors":d.data.colors,"children":[]};
-        addChildren(d.children === undefined ? d._children : d.children,myCopy);
+        addChildren( d.children,myCopy);
 
         //copy the hierarchy
 
@@ -408,6 +421,7 @@ function zoomToBounds(expandable,transitionTime) {
         flattenCopy = flattenCopy.descendants();
         //map foldoutPath for copied data.
         flattenCopy.map(m => m.foldoutPath = arc(m));
+
         d.descendants().map(function(m){
             //add foldoutPath,dimensions + transform to current data
             var myFoldout = flattenCopy.find(f => f.data.id === (m.data === undefined ? m.id : m.data.id));
@@ -419,23 +433,23 @@ function zoomToBounds(expandable,transitionTime) {
 
         function addChildren(myDataset,currentCopy){
             myDataset.forEach(function(c){
+                if(c.data._children !== undefined){
+                    c.children = allDepthRoot.descendants().find(f => f.data.id === c.data.id).children;
+                    c.data._children = undefined;
+                    c.expandedChildren = true;
+                }
                 var myValue = c.value;
                 if(d.data.wellDataAdded === true){
                     myValue = c.data.relativeValue;
                 }
                 currentCopy.children.push({
                     "value":myValue,
-                    "name":c.data === undefined ? c.name : c.data.name,
-                    "id":c.data === undefined ? c.id : c.data.id,
-                    "colors":c.data === undefined ? c.colors : c.data.colors
+                    "name":c.data.name,
+                    "id": c.data.id,
+                    "colors":c.data.colors
                 })
 
                 var newChild = currentCopy.children[currentCopy.children.length-1];
-                if(c.data !== undefined){
-                    if(c.data._children !== undefined){
-                        c.children = c.data._children;
-                    }
-                }
                 if(c.children !== undefined){
                     newChild.children = [];
                     addChildren(c.children,newChild)
@@ -1435,7 +1449,6 @@ function lineMultipleChart() {
 
             var filteredData = JSON.parse(JSON.stringify(myData));
             if(mallMap.selectedParentNode !== ""){
-                debugger;
                 var wellIds = new Set();
                 var myKeys = Object.keys(mallMap.wellExtraData).filter(f => f.includes(mallMap.selectedParentNode));
                 myKeys.forEach(k => mallMap.wellExtraData[k].forEach(function(e){

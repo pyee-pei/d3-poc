@@ -19,6 +19,7 @@
         N:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
         <input type="range"class="slider"  id="n" name="n" min="5" max="25" value="25">&nbsp;<span id="n_val">25</span><br><br>
             </span>
+
         <input type="radio" class="datasetChoice" name="datasetChoice" id="functional" value="functional" checked><label for="functional" style="font-weight: bold;">FUNCTIONAL</label>
     </div>
     <div id="group_div">
@@ -69,7 +70,7 @@
     function ready(all_datasets) {
 
         var wellsN = 25;
-        var maxDepth = 7;
+        mallMap.maxDepth = 4;
         mallMap.myWellCount = wellsN;
 
         d3.selectAll(".slider")
@@ -83,11 +84,11 @@
                     setWellExtraData();
                     mallMap.wellExtraData = wellExtraData;
                 } else {
-                   // maxDepth = this.value;
+                    mallMap.maxDepth = this.value;
                 }
                 mallMap.mainData = JSON.parse(JSON.stringify(all_datasets[1]));
                 mallMap.mainData.colors = {"functional":"#F0F0F0"};
-                mallMap.mainData.children = addColour(mallMap.mainData.children);
+                mallMap.mainData.children = addColour(mallMap.mainData.children,mallMap.maxDepth);
                 drawDashboard(mallMap.mainData,mallMap.mapData,"chart_div","breadcrumb_div","footer_div","extra_chart_div");
 
             })
@@ -112,10 +113,16 @@
         setRadioFunctionality();
         //now add colours, and start/end dates or ExtraData if it is provided for relevant node
         var dateNodes = {};
+
+        //first run of data
         all_datasets[1] = all_datasets[1][0];
+        mallMap.allDepthData = JSON.parse(JSON.stringify(all_datasets[1]));
+        mallMap.allDepthData.colors = {"functional":"#F0F0F0"};
+        mallMap.allDepthData.children = addColour(mallMap.allDepthData.children,1000);
+
         mallMap.mainData = JSON.parse(JSON.stringify(all_datasets[1]));
         mallMap.mainData.colors = {"functional":"#F0F0F0"};
-        mallMap.mainData.children = addColour(mallMap.mainData.children);
+        mallMap.mainData.children = addColour(mallMap.mainData.children,mallMap.maxDepth);
         //set final global variables
         mallMap.dateNodes = dateNodes;
         mallMap.wellNames = wellNames;
@@ -123,7 +130,7 @@
         //draw dashboard
         drawDashboard(mallMap.mainData,mallMap.mapData,"chart_div","breadcrumb_div","footer_div","extra_chart_div");
 
-        function addColour(myChildren){
+        function addColour(myChildren,maxDepth){
             //for each child
             myChildren.forEach(function(c){
                 //loop through children
@@ -145,11 +152,11 @@
                 }
                 if(c.children !== undefined){
                     if(c.node_level < maxDepth){
-                        addColour(c.children);
+                        addColour(c.children,maxDepth);
                     } else {
                         c._children = c.children;
                         c.children = undefined;
-                        addColour(c._children);
+                        addColour(c._children,maxDepth);
                     }
                     //continue till you run out of children
 
