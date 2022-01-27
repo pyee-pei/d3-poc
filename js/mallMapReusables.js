@@ -179,7 +179,7 @@ function zoomToBounds(expandable,transitionTime) {
             sunburstData = sunburstData.descendants();
         }
         if(sunburstData[0].data.expandable === undefined && sunburstData.find(f => f.expandedChildren === true) !== undefined){
-            sunburstData = sunburstData.filter(f => f.data.node_level <= mallMap.maxDepth);
+            sunburstData = sunburstData.filter(f => f.depth < (mallMap.maxDepth+1));
         }
         //calculate depthWidth (used for label visibility)
         var minDepth = d3.min(sunburstData, d => d.depth);
