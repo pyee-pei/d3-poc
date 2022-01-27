@@ -88,6 +88,9 @@
                 } else {
                     mallMap.maxDepth = +this.value - 1;
                 }
+                mallMap.allDepthData = JSON.parse(JSON.stringify(all_datasets[1]));
+                mallMap.allDepthData.colors = {"functional":"#F0F0F0"};
+                mallMap.allDepthData.children = addColour(mallMap.allDepthData.children,1000);
                 mallMap.mainData = JSON.parse(JSON.stringify(all_datasets[1]));
                 mallMap.mainData.colors = {"functional":"#F0F0F0"};
                 mallMap.mainData.children = addColour(mallMap.mainData.children,mallMap.maxDepth);
