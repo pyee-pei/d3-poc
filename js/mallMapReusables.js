@@ -233,7 +233,6 @@ function zoomToBounds(expandable,transitionTime) {
                     };
                     var svgBounds = d3.select("." + myClass + "Svg").node().getBoundingClientRect();
                     if(d.data.relativeValue !== undefined){
-                        debugger;
                         var tooltipText = "<strong></strong><span style=color:" + d.data.group_color + ";'>" + d.data.group.toUpperCase() + "</span></strong><br><span style='font-weight:normal;'>Well: " + d.data.name
                             + " (" + d.data.well_id + ")<br>Difference: $" + d3.format(".3s")(d.data.difference)
                             +  "<br>" + mallMap.tooltipExtraFields[d.data.tooltip_type]["target"] + ": $" + d3.format(".3s")(d.data.target)
@@ -284,8 +283,6 @@ function zoomToBounds(expandable,transitionTime) {
                         //if expandable, add foldoutdata
                         if(d.data.expandable !== undefined){
                             addFoldoutData(d);
-                        } else {
-                            debugger;
                         }
                         //redraw sunburst and zoom.
                         drawSunburst(d,false);
@@ -315,7 +312,7 @@ function zoomToBounds(expandable,transitionTime) {
 
     function addFoldoutData(d){
 
-        if(d.data.name.includes("Day")){
+        if(d.data.highlight_date_offset !== undefined){
             mallMap.selectedParentNode = d.data.id;
             enableButtons(".buttonGroupfooter_div#compare");
             enableButtons(".buttonGroupfooter_div#tile");
@@ -1449,16 +1446,28 @@ function lineMultipleChart() {
 
         function drawMultiples(){
 
+
             var filteredData = JSON.parse(JSON.stringify(myData));
             if(mallMap.selectedParentNode !== ""){
                 var wellIds = new Set();
                 var myKeys = Object.keys(mallMap.wellExtraData).filter(f => f.includes(mallMap.selectedParentNode));
                 myKeys.forEach(k => mallMap.wellExtraData[k].forEach(function(e){
-                    if(filterType === "beat" && e.ipc_delta_flag === "topN"){
-                        wellIds.add(e.well_id);
-                    } else if(filterType === "miss" && e.ipc_delta_flag === "bottomN"){
-                        wellIds.add(e.well_id);
-                    } else if (filterType === "middle"){
+                    var tempFilterType = filterType;
+
+                    if(tempFilterType === "beat" && e.delta_flag === "Beat"){
+                        if(e.node_rank <= mallMap.myWellCount){
+                            tempFilterType = "middle";
+                        } else {
+                            wellIds.add(e.well_id);
+                        }
+                    } else if(tempFilterType === "miss" && e.delta_flag === "Miss"){
+                        if(e.node_rank <= mallMap.myWellCount){
+                            tempFilterType = "middle";
+                        } else {
+                            wellIds.add(e.well_id);
+                        }
+                    }
+                    if (tempFilterType === "middle"){
                         wellIds.add(e.well_id);
                     }
                 }))
@@ -1694,26 +1703,28 @@ function pyramidChart() {
 
     function my(svg) {
 
-        var groupData = [{"name":"Bottom 25","align":"left","dataValue":"bottomN","colour":"red","sort_order":"ascending"},
-            {"name":"Top 25","align":"right","dataValue":"topN","colour":"green","sort_order":"descending"}];
+        var groupData = [{"name":"Miss","align":"left","dataValue":"Miss","colour":"red","sort_order":"ascending"},
+            {"name":"Beat","align":"right","dataValue":"Beat","colour":"green","sort_order":"descending"}];
 
         var xMax = 0, ySet = new Set();
         groupData.forEach(function(d,index){
-            var filteredData = myData.filter(f => f.ipc_delta_flag === d.dataValue);
+            var filteredData = myData.filter(f => f.delta_flag === d.dataValue);
 
-            var values = Array.from(d3.rollup(filteredData, v => d3.sum(v, s => Math.abs(s.actual_revenue - s.ipc_revenue)), d => d.well_id));
+            var values = Array.from(d3.rollup(filteredData, v => d3.sum(v, s => Math.abs(s.actual - s.target)), d => d.well_id));
             currentData = [];
             values.forEach(function(a,i){
                 currentData.push({
                     "well_id":a[0],
                     "wellName":mallMap.wellNames[a[0]],
                     "value":a[1],
-                    "ipc":d3.sum(filteredData, s => s.well_id === a[0] ? s.ipc_revenue : 0),
-                    "actual":d3.sum(filteredData, s => s.well_id === a[0] ? s.actual_revenue : 0),
+                    "ipc":d3.sum(filteredData, s => s.well_id === a[0] ? s.target : 0),
+                    "delta":d3.sum(filteredData, s => s.well_id === a[0] ? s.delta : 0),
+                    "actual":d3.sum(filteredData, s => s.well_id === a[0] ? s.actual : 0),
                     "align":d.align,
                     "colour":d.colour,
                     "index":index,
-                    "name":d.name
+                    "name":d.name,
+                    "tooltip_type":filteredData[0].tooltype_type
                 })
                 ySet.add(i);
             })
@@ -1818,9 +1829,9 @@ function pyramidChart() {
                     var svgBounds = d3.select("." + myClass + "Svg").node().getBoundingClientRect();
                     var tooltipText = "<strong></strong><span style=color:" + d.colour + ";'>" + d.name.toUpperCase() + "</span></strong><br><span style='font-weight:normal;'>Well: " + d.wellName
                         + " (" + d.well_id + ")<br>Difference: $" + d3.format(".3s")(d.value)
-                        +  "<br>" + mallMap.tooltipExtraFields[d.data.tooltip_type]["target"] + ": $" + d3.format(".3s")(d.target)
-                        + "<br>" + mallMap.tooltipExtraFields[d.data.tooltip_type]["actual"] + ": " + d3.format(".3s")(d.actual)
-                         + "<br>" + mallMap.tooltipExtraFields[d.data.tooltip_type]["delta"] + ": " + d3.format(".3s")(d.data.delta) + "</span>";
+                        +  "<br>" + mallMap.tooltipExtraFields[d.tooltip_type]["target"] + ": $" + d3.format(".3s")(d.ipc)
+                        + "<br>" + mallMap.tooltipExtraFields[d.tooltip_type]["actual"] + ": $" + d3.format(".3s")(d.actual)
+                         + "<br>" + mallMap.tooltipExtraFields[d.tooltip_type]["delta"] + ": $" + d3.format(".3s")(d.delta) + "</span><br>";
 
                         d3.select(".d3_tooltip")
                         .style("visibility","visible")

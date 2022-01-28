@@ -151,7 +151,6 @@ function drawStackedBar(filteredData){
 function drawLineMultiples(){
 
     var chartData = JSON.parse(JSON.stringify(mallMap.extraChartData));
-    var wellIds = new Set();
     if(mallMap.currentExtraChart !== "tile"){
         mallMap.currentExtraChart = "tile";
         d3.select("." + mallMap.extraChartDivId  + "Svg").selectAll("*").remove();
@@ -191,6 +190,7 @@ function drawPyramid(){
         var myKeys = Object.keys(mallMap.wellExtraData).filter(f => f.includes(mallMap.selectedParentNode));
         myKeys.forEach(k => selectedData = selectedData.concat(mallMap.wellExtraData[k]))
     }
+    selectedData = selectedData.filter(f => f.node_rank <= mallMap.myWellCount);
 
     var height = +svg.attr("height");
     var width = +svg.attr("width");

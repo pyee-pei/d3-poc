@@ -74,6 +74,7 @@
         var wellsN = 25;
         mallMap.maxDepth = 4;
         mallMap.myWellCount = wellsN;
+        all_datasets[0] = all_datasets[0][0];
 
         d3.selectAll(".slider")
             .on("input",function(d){
@@ -190,6 +191,7 @@
                                 "node_rank":w.node_rank,
                                 "tooltip_type":w.tooltype_type,
                                 "delta":w.delta,
+                                "delta_flag":w.delta_flag,
                             })
                         })
                         //sort extra children, and add.
@@ -209,8 +211,6 @@
         }
 
         function setWellExtraData(){
-            all_datasets[0] = all_datasets[0][0];
-
             var nodeIds = new Set();
             all_datasets[0].data.forEach(d => nodeIds.add(d.node_id));
             nodeIds = Array.from(nodeIds.values());
