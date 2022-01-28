@@ -233,10 +233,12 @@ function zoomToBounds(expandable,transitionTime) {
                     };
                     var svgBounds = d3.select("." + myClass + "Svg").node().getBoundingClientRect();
                     if(d.data.relativeValue !== undefined){
+                        debugger;
                         var tooltipText = "<strong></strong><span style=color:" + d.data.group_color + ";'>" + d.data.group.toUpperCase() + "</span></strong><br><span style='font-weight:normal;'>Well: " + d.data.name
                             + " (" + d.data.well_id + ")<br>Difference: $" + d3.format(".3s")(d.data.difference)
-                            +  "<br>Ipc Revenue: $" + d3.format(".3s")(d.data.ipc)
-                            + "<br>Actual Revenue: " + d3.format(".3s")(d.data.actual) + "</span><br>";
+                            +  "<br>" + mallMap.tooltipExtraFields[d.data.tooltip_type]["target"] + ": $" + d3.format(".3s")(d.data.target)
+                            + "<br>" + mallMap.tooltipExtraFields[d.data.tooltip_type]["actual"] + ": " + d3.format(".3s")(d.data.actual)
+                             + "<br>" + mallMap.tooltipExtraFields[d.data.tooltip_type]["delta"] + ": " + d3.format(".3s")(d.data.delta) + "</span><br>";
 
                     } else {
                         tooltipText = d.data.name;
@@ -1816,8 +1818,9 @@ function pyramidChart() {
                     var svgBounds = d3.select("." + myClass + "Svg").node().getBoundingClientRect();
                     var tooltipText = "<strong></strong><span style=color:" + d.colour + ";'>" + d.name.toUpperCase() + "</span></strong><br><span style='font-weight:normal;'>Well: " + d.wellName
                         + " (" + d.well_id + ")<br>Difference: $" + d3.format(".3s")(d.value)
-                        +  "<br>Ipc Revenue: $" + d3.format(".3s")(d.ipc)
-                        + "<br>Actual Revenue: " + d3.format(".3s")(d.actual) + "</span>";
+                        +  "<br>" + mallMap.tooltipExtraFields[d.data.tooltip_type]["target"] + ": $" + d3.format(".3s")(d.target)
+                        + "<br>" + mallMap.tooltipExtraFields[d.data.tooltip_type]["actual"] + ": " + d3.format(".3s")(d.actual)
+                         + "<br>" + mallMap.tooltipExtraFields[d.data.tooltip_type]["delta"] + ": " + d3.format(".3s")(d.data.delta) + "</span>";
 
                         d3.select(".d3_tooltip")
                         .style("visibility","visible")
@@ -1865,8 +1868,9 @@ function pyramidChart() {
                     var svgBounds = d3.select("." + myClass + "Svg").node().getBoundingClientRect();
                     var tooltipText = "<strong></strong><span style=color:" + d.colour + ";'>" + d.name.toUpperCase() + "</span></strong><br><span style='font-weight:normal;'>Well: " + d.wellName
                         + " (" + d.well_id + ")<br>Difference: $" + d3.format(".3s")(d.value)
-                        +  "<br>Ipc Revenue: $" + d3.format(".3s")(d.ipc)
-                        + "<br>Actual Revenue: " + d3.format(".3s")(d.actual) + "</span>";
+                        +  "<br>" + mallMap.tooltipExtraFields[d.data.tooltip_type]["target"] + ": $" + d3.format(".3s")(d.target)
+                        + "<br>" + mallMap.tooltipExtraFields[d.data.tooltip_type]["actual"] + ": " + d3.format(".3s")(d.actual)
+                        + "<br>" + mallMap.tooltipExtraFields[d.data.tooltip_type]["delta"] + ": " + d3.format(".3s")(d.data.delta) + "</span>";
 
                     d3.select(".d3_tooltip")
                         .style("visibility","visible")
@@ -2038,13 +2042,15 @@ function wellMap() {
                         + ";'>" + (d.position_flag === "topN" ? "top 25" : "bottom 25").toUpperCase()
                         + "</span></strong><br><span style='font-weight:normal;'>Well: " + d.wellName
                         + " (" + d.well_id + ")<br>Difference: $" + d3.format(".3s")(d.difference)
-                        +  "<br>Ipc Revenue: $" + d3.format(".3s")(d.ipc)
-                        + "<br>Actual Revenue: " + d3.format(".3s")(d.actual) + "</span>";
+                        +  "<br>" + mallMap.tooltipExtraFields[d.data.tooltip_type]["target"] + ": $" + d3.format(".3s")(d.target)
+                        + "<br>" + mallMap.tooltipExtraFields[d.data.tooltip_type]["actual"] + ": " + d3.format(".3s")(d.actual)
+                         + "<br>" + mallMap.tooltipExtraFields[d.data.tooltip_type]["delta"] + ": " + d3.format(".3s")(d.data.delta) + "</span>";
                 } else {
                     var tooltipText = "<span style='font-weight:normal;'>Well: " + d.wellName
                         + " (" + d.well_id + ")<br>Difference: $" + d3.format(".3s")(d.difference)
-                        +  "<br>Ipc Revenue: $" + d3.format(".3s")(d.ipc)
-                        + "<br>Actual Revenue: " + d3.format(".3s")(d.actual) + "</span>";
+                        +  "<br>" + mallMap.tooltipExtraFields[d.data.tooltip_type]["target"] + ": $" + d3.format(".3s")(d.target)
+                        + "<br>" + mallMap.tooltipExtraFields[d.data.tooltip_type]["actual"] + ": " + d3.format(".3s")(d.actual)
+                        + "<br>" + mallMap.tooltipExtraFields[d.data.tooltip_type]["delta"] + ": " + d3.format(".3s")(d.data.delta) + "</span>";
                 }
                 d3.select(".d3_tooltip")
                     .style("visibility","visible")

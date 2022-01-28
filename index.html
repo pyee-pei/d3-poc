@@ -102,7 +102,7 @@
         setWellExtraData();
         //save global vars
         mallMap.wellExtraData = wellExtraData;
-        debugger;
+        mallMap.tooltipExtraFields = all_datasets[0].tooltipExtraFields;
 
         const clientWellData = all_datasets[6].find(f => f.client_id === clientId);
         mallMap.wellData = clientWellData.well_data;
@@ -179,15 +179,17 @@
                                 "name":w.well_name,
                                 "relativeValue":c.value * w.relativeDifference,
                                 "id": c.id + (i+1) + "-",
-                                "difference":w.actual_revenue - w.ipc_revenue,
+                                "difference":w.actual - w.target,
                                 "group":c.name,
                                 "group_color":w.node_color,
-                                "ipc": w.ipc_revenue,
-                                "actual":w.actual_revenue,
+                                "target": w.target,
+                                "actual":w.actual,
                                 "colors":{"functional":w.node_color},
                                 "node_level":c.node_level + 1,
                                 "well_id":w.well_id,
-                                "node_rank":w.node_rank
+                                "node_rank":w.node_rank,
+                                "tooltip_type":w.tooltype_type,
+                                "delta":w.delta,
                             })
                         })
                         //sort extra children, and add.
@@ -207,14 +209,16 @@
         }
 
         function setWellExtraData(){
+            all_datasets[0] = all_datasets[0][0];
+
             var nodeIds = new Set();
-            all_datasets[0].forEach(d => nodeIds.add(d.node_id));
+            all_datasets[0].data.forEach(d => nodeIds.add(d.node_id));
             nodeIds = Array.from(nodeIds.values());
             nodeIds.forEach(function(n){
-                wellExtraData[n] = all_datasets[0].filter(f => f.node_id === n);
+                wellExtraData[n] = all_datasets[0].data.filter(f => f.node_id === n);
                 wellExtraData[n] = wellExtraData[n].filter(f => f.node_rank <= wellsN);
-                var totalDifference = d3.sum(wellExtraData[n],s => s.actual_revenue - s.ipc_revenue);
-                wellExtraData[n].forEach(w => w.relativeDifference = (w.actual_revenue - w.ipc_revenue)/totalDifference)
+                var totalDifference = d3.sum(wellExtraData[n],s => s.actual - s.target);
+                wellExtraData[n].forEach(w => w.relativeDifference = (w.actual - w.target)/totalDifference)
             })
         }
         function setColorsAndGroups(){

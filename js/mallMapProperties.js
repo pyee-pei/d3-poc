@@ -23,7 +23,8 @@ var mallMap = {
     "currentWellColours":{},
     "dateNodes":{},
     "barMenuGroups":[],
-    "maxDepth":4
+    "maxDepth":4,
+    "tooltipExtraFields":{}
 
 
 
