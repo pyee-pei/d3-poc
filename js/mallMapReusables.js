@@ -1994,6 +1994,7 @@ function wellMap() {
         const projection = d3.geoAlbersUsa()
             .fitSize([width, height], mapData)
 
+        debugger;
         const path = d3.geoPath().projection(projection);
 
         const statesGroup = svg.selectAll('.statesGroup' + myClass)

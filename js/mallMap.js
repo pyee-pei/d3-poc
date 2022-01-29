@@ -94,17 +94,19 @@ function drawWellMap(){
             v => d3.sum(v, s => Math.abs(s.actual_revenue_minus_royalty - s.ipc_revenue_minus_royalty)), d => d.well_id));
     var myData = [];
     groupedByWell.forEach(function(d){
-        var oneWell = mallMap.wellData.find(f => f.well_id === d[0]);
-        if(+oneWell.longitude_surface !== 0){
-            myData.push({
-                "well_id": d[0],
-                "difference":d[1],
-                "wellName": oneWell.well_name,
-                "long_lat":[+oneWell.longitude_surface,+oneWell.latitude_surface],
-                "ipc": d3.sum(mallMap.extraChartData, s => s.well_id === d[0] ? s.ipc_revenue_minus_royalty : 0),
-                "actual": d3.sum(mallMap.extraChartData, s => s.well_id === d[0] ? s.actual_revenue_minus_royalty : 0),
-                "fill": wellColours[oneWell.well_id] === undefined ? null : wellColours[oneWell.well_id]
-            })
+        var oneWell = mallMap.wellData.find(f => f.well_id === +d[0]);
+        if(oneWell.longitude_surface !== undefined){
+            if(+oneWell.longitude_surface !== 0){
+                myData.push({
+                    "well_id": d[0],
+                    "difference":d[1],
+                    "wellName": oneWell.well_name,
+                    "long_lat":[+oneWell.longitude_surface,+oneWell.latitude_surface],
+                    "ipc": d3.sum(mallMap.extraChartData, s => s.well_id === d[0] ? s.ipc_revenue_minus_royalty : 0),
+                    "actual": d3.sum(mallMap.extraChartData, s => s.well_id === d[0] ? s.actual_revenue_minus_royalty : 0),
+                    "fill": wellColours[oneWell.well_id] === undefined ? null : wellColours[oneWell.well_id]
+                })
+            }
         }
     })
 
