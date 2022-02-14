@@ -988,7 +988,8 @@ function stackedBarChart() {
         d3.selectAll(".yAxisProportion" + myClass + " .tick text")
             .attr("x",-4)
 
-        drawBar(currentData[currentDataIndex], mallMap.barDateRange === "all" ? 0 : 1000);
+        let selectedKeyIndex = 3,selectedDataIndex = 2;
+        drawBar(currentData[selectedDataIndex], mallMap.barDateRange === "all" ? 0 : 1000,selectedKeyIndex);
 
         const barOptions = ["stack","split","proportion"];
 
@@ -1011,7 +1012,7 @@ function stackedBarChart() {
                 d3.selectAll(".barOptionsText").attr("opacity",0.4);
                 d3.select(this).attr("opacity",1);
                 barLayout = d;
-                drawBar(currentData[currentDataIndex],1000)
+                drawBar(currentData[selectedDataIndex],1000,selectedKeyIndex)
             });
 
         var barOptionsX = 0;
@@ -1024,6 +1025,7 @@ function stackedBarChart() {
         barOptionsGroup.attr("transform","translate(" + ((width - barOptionsX)/2) + ",0)");
 
         const stackOptions = mallMap.barMenuGroups;
+        stackOptions.unshift("opp view");
 
         const stackOptionsGroup = svg.selectAll('.stackOptionsGroup' + myClass)
             .data(stackOptions)
@@ -1041,11 +1043,13 @@ function stackedBarChart() {
             .text((d,i) => (i === 0 ? "" : "|    ") + d.replace(/_/g,' ').toUpperCase())
             .attr("transform","translate(" + margins.left + ",0)")
             .on("click",function(event,d){
+                selectedKeyIndex = (d === "opp view" ? 3 : 1);
+                selectedDataIndex = (d === "opp view" ? 2 : 0);
                 d3.selectAll(".stackOptionsText").attr("opacity",0.4);
                 d3.select(this).attr("opacity",1);
                 stackType = d;
                 currentData = getDatabyStackOption();
-                drawBar(currentData[currentDataIndex],0);
+                drawBar(currentData[selectedDataIndex],0,selectedKeyIndex);
                 drawLegend(myKeys.filter(f => f !== undefined));
 
             });
@@ -1114,39 +1118,33 @@ function stackedBarChart() {
             let myKeys = new Set();
             mallMap.wellData.map(m => m[stackType] = (m[stackType] === undefined ? "NO DATA" : m[stackType]));
             mallMap.wellData.forEach(d => myKeys.add(d[stackType]));
-            myKeys = Array.from(myKeys);
+            currentKeys = Array.from(myKeys);
 
-            const barData = [];
-            const barDataTop25 = [];
-            const barDataBottom25 = [];
+            const barData = [],oppData = [];
 
             dateGroup.forEach(function(d){
                 var myTotal = d3.sum(d[1], s => s.ipc_revenue_minus_royalty);
                 var actualTotal = d3.sum(d[1], s => s.actual_revenue_minus_royalty);
+                var downtimeTotal = d3.sum(d[1], s => s.reported_downtime_lost_revenue);
+                var unidentifiedTotal =  d3.sum(d[1], s => s.unidentified_lost_revenue);
+                //MASSIVE CHEAT FROM BRYONY
+
+                d[1] = d[1].filter(f => mallMap.wellData.find(w => w.well_id === +f.well_id) !== undefined)
+                //END OF MASSIVE CHEAT
                 var stackData = Array.from(d3.rollup(d[1],v => d3.sum(v, s => s.actual_revenue_minus_royalty)
                     ,g => mallMap.wellData.find(f => f.well_id === +g.well_id)[stackType]));
                 var ipcStackData = Array.from(d3.rollup(d[1],v => d3.sum(v, s => s.ipc_revenue_minus_royalty)
                     ,g => mallMap.wellData.find(f => f.well_id === +g.well_id)[stackType]));
-                barData.push(getEntry(d[0],myTotal,actualTotal,stackData,ipcStackData));
-                var filteredData = d[1].filter(f => f.position_flag === "topN")
-                myTotal = d3.sum(filteredData, s => s.ipc_revenue_minus_royalty);
-                actualTotal = d3.sum(filteredData, s => s.actual_revenue_minus_royalty);
-                stackData = Array.from(d3.rollup(filteredData,v => d3.sum(v, s => s.actual_revenue_minus_royalty),g => mallMap.wellData.find(f => f.well_id === +g.well_id)[stackType]));
-                ipcStackData = Array.from(d3.rollup(filteredData,v => d3.sum(v, s => s.ipc_revenue_minus_royalty),g => mallMap.wellData.find(f => f.well_id === +g.well_id)[stackType]));
-                barDataTop25.push(getEntry(d[0],myTotal,actualTotal,stackData,ipcStackData));
-                filteredData = d[1].filter(f => f.position_flag === "bottomN")
-                myTotal = d3.sum(filteredData, s => s.ipc_revenue_minus_royalty);
-                actualTotal = d3.sum(filteredData, s => s.actual_revenue_minus_royalty);
-                stackData = Array.from(d3.rollup(filteredData,v => d3.sum(v, s => s.actual_revenue_minus_royalty)
-                    ,g => mallMap.wellData.find(f => f.well_id === +g.well_id)[stackType]));
-                ipcStackData = Array.from(d3.rollup(filteredData,v => d3.sum(v, s => s.actual_revenue_minus_royalty)
-                    ,g => mallMap.wellData.find(f => f.well_id === +g.well_id)[stackType]));
-                barDataBottom25.push(getEntry(d[0],myTotal,actualTotal,stackData,ipcStackData));
+                barData.push(getEntry(d[0],myTotal,actualTotal,stackData,ipcStackData,currentKeys));
+
+                var oppGroup = [["actual",actualTotal],["downtime",downtimeTotal],["unidentified",unidentifiedTotal]];
+                oppData.push(getEntry(d[0],myTotal,actualTotal,oppGroup,ipcStackData,["actual","downtime","unidentified"]))
+
             })
 
-            return [barData,barDataTop25,barDataBottom25,myKeys];
+            return [barData,currentKeys,oppData, ["actual","downtime","unidentified"]];
 
-            function getEntry(myDate,ipcTotal,actualTotal,dataStack,ipcStackData){
+            function getEntry(myDate,ipcTotal,actualTotal,dataStack,ipcStackData,myKeys){
 
                 var currentEntry = {
                     "date":myDate,
@@ -1180,11 +1178,12 @@ function stackedBarChart() {
         }
     }
 
-    function drawBar(myBarData,transitionTime){
+    function drawBar(myBarData,transitionTime,currentKeyIndex){
 
         yMax = d3.max(myBarData, d => Math.max(d.total,d.actual_total));
         yScale = d3.scaleLinear().domain([0,yMax]).range([height,0]);
-        myKeys = currentData[3];
+        myKeys = currentData[currentKeyIndex];
+
         if(barLayout === "proportion"){
             if(myKeys.indexOf("remainder") === -1){
                 myKeys.push("remainder");
