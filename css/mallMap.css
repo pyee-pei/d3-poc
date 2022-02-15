@@ -116,3 +116,13 @@ body{
 .wellInput{
   height: 10px;
 }
+
+.handle{
+  fill: #A0A0A0;
+  rx: 1.5;
+  ry: 1.5;
+}
+
+.overlay{
+  fill: #F0F0F0;
+}
