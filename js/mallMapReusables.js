@@ -217,8 +217,8 @@ function zoomToBounds(expandable,transitionTime) {
 
         pathGroup.select(".sunburstPath")
             .attr("id", (d,i) =>  d.data.well_id === undefined ? "notwell" + i : "well" + d.data.well_id)
-            .attr("display",d =>  d.data.well_id === undefined ? "block" : (mallMap.currentWellIds.length === 0 ? "block" :
-                    (mallMap.currentWellIds.indexOf(d.data.well_id) > -1 ? "block" : "none")))
+            .attr("fill-opacity",d =>  d.data.well_id === undefined ? 1: (mallMap.currentWellIds.length === 0 ? 1 :
+                    (mallMap.currentWellIds.indexOf(d.data.well_id) > -1 ? 1 : 0.2)))
             .attr("fill", getPathFill)
             .attr("d", arc)
             .on("mouseover",function(event,d){
@@ -292,8 +292,8 @@ function zoomToBounds(expandable,transitionTime) {
             });
 
         pathGroup.select(".pathLabel")
-            .attr("display",d =>  d.data.well_id === undefined ? "block" : (mallMap.currentWellIds.length === 0 ? "block" :
-                (mallMap.currentWellIds.indexOf(d.data.well_id) > -1 ? "block" : "none")))
+            .attr("fill-opacity",d =>  d.data.well_id === undefined ? 1 : (mallMap.currentWellIds.length === 0 ? 1:
+                (mallMap.currentWellIds.indexOf(d.data.well_id) > -1 ? 1 : 0.2)))
             .attr("opacity",1)
             .attr("pointer-events", "none")
             .attr("text-anchor", "middle")
@@ -925,7 +925,7 @@ function stackedBarChart() {
 
         function brushed(event){
             d3.selectAll(".handle").attr("y",0);
-            mallMap.stackedBarChart.changeDateRange(event.selection.map(xScaleTime.invert, xScaleTime))
+            my.changeDateRange(event.selection.map(xScaleTime.invert, xScaleTime))
         }
 
         xDomain = new Set();
@@ -936,7 +936,6 @@ function stackedBarChart() {
         visibleBandwidth = xScale.bandwidth();
         xScaleTime = d3.scaleTime().domain(d3.extent(newXDomain)).range([0,width]);
         xScaleTimeFiltered = d3.scaleTime().domain(d3.extent(newXDomain)).range([0,width]);
-        //my.changeDateRange(barDateRange);
         yScaleProportion = d3.scaleLinear().domain([0,1]).range([height,0]);
         yScale = "",scaleNumber = 0, myKeys = "",yMax = 0;
 
@@ -958,9 +957,19 @@ function stackedBarChart() {
             svg.append("path").attr("class","ipcLine" + myClass);
         }
 
+        let brushRange = xScale.range();
+        const currentDateNodes = mallMap.dateNodes[mallMap.selectedParentNode];
+
+        if(currentDateNodes !== undefined){
+            const dayCount = d3.timeDay.count(currentDateNodes[0],currentDateNodes[1]);
+            brushRange[0] = xScaleTime(d3.timeDay.offset(currentDateNodes[0],-(dayCount*3)));
+            if(brushRange[0] === undefined){brushRange[0] = 0}
+            brushRange[1] = xScaleTime(currentDateNodes[1]);
+        }
+
         d3.select(".brushGroup" + myClass)
             .call(brush)
-            .call(brush.move, [0,width])
+            .call(brush.move,brushRange)
             .attr("transform","translate(" + margins.left + "," + (height + margins.top + 20) + ")");
 
         d3.selectAll(".handle")
@@ -968,14 +977,8 @@ function stackedBarChart() {
             .style("height","20px")
             .attr("y",0);
 
-        var currentDateNodes = mallMap.dateNodes[mallMap.selectedParentNode];
 
         d3.select(".dateRect" + myClass)
-            .attr("x",currentDateNodes === undefined ? 0 :
-                xScaleTime(currentDateNodes[0])
-            )
-            .attr("width",currentDateNodes === undefined ? width :
-                xScaleTime(currentDateNodes[1]) - xScaleTime(currentDateNodes[0]))
             .attr("height",height)
             .attr("fill","gold")
             .attr("visibility",currentDateNodes === undefined ? "hidden":"visible")
@@ -1000,22 +1003,20 @@ function stackedBarChart() {
         d3.select(".xAxisLabelLeft" + myClass)
             .attr("x",margins.left)
             .attr("y",height + margins.top + 12)
-            .attr("font-size",10)
-            .text(d3.timeFormat("%d %b %y")(xDomain[0]));
+            .attr("font-size",10);
 
         d3.select(".xAxisLabelRight" + myClass)
             .attr("x",width + margins.left)
             .attr("y",height + margins.top + 12)
             .attr("font-size",10)
-            .attr("text-anchor","end")
-            .text(d3.timeFormat("%d %b %y")(xDomain[xDomain.length-1]));
+            .attr("text-anchor","end");
 
       //  d3.select(".xAxis" + myClass)
        //     .call(d3.axisBottom(xScaleTimeFiltered).tickValues(d3.extent(newXDomain)).tickFormat(d => d3.timeFormat("%d %b %y")(d)).tickSizeOuter(0))
      //       .attr("transform","translate(" + margins.left + "," + (height + margins.top) + ")");
 
         d3.select(".xAxisBrush" + myClass)
-            .call(d3.axisBottom(xScaleTime).tickValues(d3.extent(newXDomain)).tickFormat(d => d3.timeFormat("%d %b %y")(d)).tickSizeOuter(0))
+            .call(d3.axisBottom(xScaleTime).tickValues(d3.extent(xDomain)).tickFormat(d => d3.timeFormat("%d %b %y")(d)).tickSizeOuter(0))
             .attr("transform","translate(" + margins.left + "," + (height + margins.top + 40) + ")");
 
         d3.selectAll(".xAxis" + myClass + " .tick text")
@@ -1124,7 +1125,9 @@ function stackedBarChart() {
                 .attr("y",(margins.top*0.6))
                 .attr("width",15)
                 .attr("height",10)
-                .attr("fill",(d,i) => d === "IPC" ? "#31a354" : d3.schemeBlues[scaleNumber][scaleNumber-(i+1)]);
+                .attr("fill",(d,i) => d === "IPC" ? "#31a354" :
+                    (selectedDataIndex === 2 ? mallMap.oppColors[d] : d3.schemeBlues[scaleNumber][scaleNumber-(i+1)])
+                );
 
             legendGroup.select(".legendLabel")
                 .attr("id",(d,i) => "legendLabel" + i)
@@ -1349,7 +1352,10 @@ function stackedBarChart() {
             });
 
         stackGroup.select(".stackGroup")
-            .attr("fill",(d,i) => myKeys[i] === "remainder" ? "white" : d3.schemeBlues[scaleNumber][scaleNumber-(i+1)])
+            .attr("fill",(d,i) => myKeys[i] === "remainder" ? "white" :
+                (currentKeyIndex === 3 ?
+                    mallMap.oppColors[(d.key.includes("_") ? d.key.split("_")[0]:d.key)]
+                    : d3.schemeBlues[scaleNumber][scaleNumber-(i+1)]))
             .attr("transform","translate(" + margins.left + "," + margins.top + ")");
 
         const barGroup = stackGroup.select(".stackGroup").selectAll('.barGroup' + myClass)
@@ -1398,19 +1404,20 @@ function stackedBarChart() {
 
     my.changeDateRange = function (myDateRange){
 
-        var rangeStart = new Date(myDateRange[0].getFullYear(),myDateRange[0].getMonth(),myDateRange[0].getDay());
-        var rangeEnd = new Date(myDateRange[1].getFullYear(),myDateRange[1].getMonth(),myDateRange[1].getDay());
+
+        var rangeStart = new Date(myDateRange[0].getFullYear(),myDateRange[0].getMonth(),myDateRange[0].getDate());
+        var rangeEnd = new Date(myDateRange[1].getFullYear(),myDateRange[1].getMonth(),myDateRange[1].getDate());
         var dayCount = d3.timeDay.count(rangeStart,rangeEnd);
         if(dayCount === 0){dayCount = 1};
         var dayCountLeft = d3.timeDay.count(xDomain[0],rangeStart);
         var dayCountRight = d3.timeDay.count(rangeEnd, xDomain[xDomain.length-1]);
         newXDomain = xDomain.filter(f => f >= rangeStart && f <= rangeEnd);
-        visibleBandwidth = width / dayCount;
+        visibleBandwidth = xScaleTimeFiltered(d3.timeDay.offset(rangeStart,1))
         var newRangeLeft = dayCountLeft * visibleBandwidth;
         var newRangeRight = dayCountRight * visibleBandwidth;
         xScale.range([-newRangeLeft, width + newRangeRight])
 
-        xScaleTimeFiltered.domain(myDateRange);
+        xScaleTimeFiltered.domain([rangeStart,rangeEnd]);
 
         d3.select(".xAxisLabelLeft" + myClass)
             .text(d3.timeFormat("%d %b %y")(myDateRange[0]));
@@ -1422,8 +1429,17 @@ function stackedBarChart() {
             .interrupt()
             .transition()
            .duration(3000)
-            .attr("x",d => xScale(new Date(d.data.date)))
+            .attr("x",d => xScaleTimeFiltered(new Date(d.data.date)))
             .attr("width",visibleBandwidth);
+
+        var currentDateNodes = mallMap.dateNodes[mallMap.selectedParentNode];
+
+        d3.select(".dateRect" + myClass)
+            .attr("x",currentDateNodes === undefined ? 0 :
+                xScaleTimeFiltered(currentDateNodes[0])
+            )
+            .attr("width",currentDateNodes === undefined ? width :
+                xScaleTimeFiltered(currentDateNodes[1]) - xScaleTimeFiltered(currentDateNodes[0]));
     }
 
     my.width = function(value) {
@@ -1479,7 +1495,7 @@ function lineMultipleChart() {
         myData = [],
         myClass="",
         filterType = "",
-        yScaleUniversal = true;
+        yScaleUniversal = false;
 
     function my(svg) {
 
@@ -1667,7 +1683,7 @@ function lineMultipleChart() {
         });
 
 
-        const axisOptions = ["universal","individual"];
+        const axisOptions = ["individual","universal"];
 
         const axisGroup = svg.selectAll('.axisGroup' + myClass)
             .data(axisOptions)

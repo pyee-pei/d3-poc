@@ -24,7 +24,8 @@ var mallMap = {
     "dateNodes":{},
     "barMenuGroups":[],
     "maxDepth":4,
-    "tooltipExtraFields":{}
+    "tooltipExtraFields":{},
+    "oppColors":{"actual":"#4682B4","downtime":"#708090","unidentified":"#FFA500"}
 
 
 
