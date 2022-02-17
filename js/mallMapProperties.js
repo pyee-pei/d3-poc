@@ -25,7 +25,8 @@ var mallMap = {
     "barMenuGroups":[],
     "maxDepth":4,
     "tooltipExtraFields":{},
-    "oppColors":{"actual":"#4682B4","downtime":"#708090","unidentified":"#FFA500"}
+    "oppColors":{"actual":"#4682B4","downtime":"#708090","unidentified":"#FFA500"},
+    "currentSelectedPath":""
 
 
 

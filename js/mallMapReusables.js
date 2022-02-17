@@ -19,7 +19,6 @@ function mallMapChart() {
         depthWidth = 0,
         arc = "",
         root = "",
-        currentBreadcrumbData = [{"depth":0,"label":"Home","fill":"white"}],
         allDepthRoot = {};
 
     function my(mySvg) {
@@ -45,11 +44,18 @@ function mallMapChart() {
         root = getPartition(myHierarchy);
         const allDepthHierarchy = getHierarchy(mallMap.allDepthData);
         allDepthRoot = getPartition(allDepthHierarchy);
+        let currentBreadcrumbData = [{"depth":0,"label":"Home","id": myData.id,"fill":"white"}];
+        if(mallMap.currentSelectedPath !== ""){
+            const pathData = allDepthRoot.descendants().find(f => f.depth === mallMap.currentSelectedPath.depth && f.data.id === mallMap.currentSelectedPath.node_id);
+            nodeClick({},pathData);
+        } else {
+            mallMap.currentSelectedPath = ""
+            //draw breadcrumbs,chart and then zoomtobounds
+            drawBreadcrumbs(currentBreadcrumbData)
+            drawSunburst(root,true);
+            zoomToBounds(false,1000);
+        }
 
-        //draw breadcrumbs,chart and then zoomtobounds
-        drawBreadcrumbs(currentBreadcrumbData)
-        drawSunburst(root,true);
-        zoomToBounds(false,1000);
     }
 
     function getHierarchy(myDataset){
@@ -263,33 +269,7 @@ function zoomToBounds(expandable,transitionTime) {
                     d3.selectAll(".pyramidBar").attr("opacity",1);
                 }
             })
-            .on("click",function(event,d){
-                if(d.depth > 0 && midTransition === false){
-                    if(d.data.well_id !== undefined){
-                        mallMap.selectedColor = d.data.well_id;
-                        var wellIds = [d.data.well_id];
-                        mallMap.currentWellIds = wellIds;
-                        disableButtons(".buttonGroupfooter_div#tile");
-                        var myExtraData = JSON.parse(JSON.stringify(mallMap.extraChartData));
-                        myExtraData = myExtraData.filter(f => wellIds.indexOf(+f.well_id) > -1);
-                        document.getElementById("radio_" + d.data.well_id).checked = true
-                        drawDashboard(mallMap.mainData, mallMap.mapData,"chart_div","breadcrumb_div","footer_div","extra_chart_div",myExtraData);
-                        drawBreadcrumbs([{"depth":0,"label":"Home","fill":"white"},{"depth":0,"label":"BACK","fill":"#F0F0F0", "data":sunburstData.find(f => f.depth === d3.min(sunburstData, m => m.depth)),"breadcrumbs":currentBreadcrumbData}])
-
-                    } else {
-                        //get breadcrumb data and redraw breadcrumb
-                        currentBreadcrumbData = getBreadcrumbs(d);
-                        drawBreadcrumbs(currentBreadcrumbData);
-                        //if expandable, add foldoutdata
-                        if(d.data.expandable !== undefined){
-                            addFoldoutData(d);
-                        }
-                        //redraw sunburst and zoom.
-                        drawSunburst(d,false);
-                        zoomToBounds(d.data.expandable === undefined ? false : true,1000);
-                    }
-                }
-            });
+            .on("click",nodeClick);
 
         pathGroup.select(".pathLabel")
             .attr("fill-opacity",d =>  d.data.well_id === undefined ? 1 : (mallMap.currentWellIds.length === 0 ? 1:
@@ -308,6 +288,38 @@ function zoomToBounds(expandable,transitionTime) {
                 return d3.lab(d.data.colors[selectedColor] || mallMap.colors.fillColor).l < 60 ? mallMap.colors.lightColor
                     : mallMap.colors.darkColor;
             });
+    }
+
+    function nodeClick(event,d){
+
+        if(d.depth > 0 && midTransition === false){
+            if(d.data.well_id !== undefined){
+                //if individual well click.
+                mallMap.currentSelectedPath = "";
+                mallMap.selectedColor = d.data.well_id;
+                var wellIds = [d.data.well_id];
+                mallMap.currentWellIds = wellIds;
+                disableButtons(".buttonGroupfooter_div#tile");
+                var myExtraData = JSON.parse(JSON.stringify(mallMap.extraChartData));
+                myExtraData = myExtraData.filter(f => wellIds.indexOf(+f.well_id) > -1);
+                document.getElementById("radio_" + d.data.well_id).checked = true
+                drawDashboard(mallMap.mainData, mallMap.mapData,"chart_div","breadcrumb_div","footer_div","extra_chart_div",myExtraData);
+                drawBreadcrumbs([{"depth":0,"label":"Home","id":myData.id,"fill":"white"},{"depth":0,"label":"BACK","id":"","fill":"#F0F0F0", "data":sunburstData.find(f => f.depth === d3.min(sunburstData, m => m.depth)),"breadcrumbs":currentBreadcrumbData}])
+
+            } else {
+                mallMap.currentSelectedPath = {"depth":d.depth,"node_id":d.data.id};
+                //get breadcrumb data and redraw breadcrumb
+                currentBreadcrumbData = getBreadcrumbs(d);
+                drawBreadcrumbs(currentBreadcrumbData);
+                //if expandable, add foldoutdata
+                if(d.data.expandable !== undefined){
+                    addFoldoutData(d);
+                }
+                //redraw sunburst and zoom.
+                drawSunburst(d,false);
+                zoomToBounds(d.data.expandable === undefined ? false : true,1000);
+            }
+        }
     }
 
     function addFoldoutData(d){
@@ -482,7 +494,7 @@ function zoomToBounds(expandable,transitionTime) {
             .attr("fill",d => d.fill)
             .on("click",function(event,d){
                 if(midTransition === false){
-                    var myRoot = root.descendants().find(f => f.depth === d.depth && f.data.name === d.label);
+                    var myRoot = root.descendants().find(f => f.depth === d.depth && f.data.id === d.id);
                     var myDepth = d.depth;
                     var allData = false;
                     if(d.label === "BACK"){
@@ -490,6 +502,7 @@ function zoomToBounds(expandable,transitionTime) {
                         myDepth = d3.min(myRoot,m => m.depth);
                         if(d.depth === 0){allData = true};
                         selectedColor = "functional";
+                        mallMap.currentWellIds = [];
                     }
                     if(myDepth > 0) {
                         //reset breadcrumbs if > 0
@@ -497,13 +510,15 @@ function zoomToBounds(expandable,transitionTime) {
                         if(myRoot.data === undefined){
                             breadcrumbData = currentBreadcrumbData;
                         }
+                        mallMap.currentSelectedPath = {"depth":d.depth,"node_id":d.id};
                         drawBreadcrumbs(breadcrumbData);
                         currentBreadcrumbData = breadcrumbData;
                     } else {
                         //or reset to default breadcrumb
                         allData = true;
-                        drawBreadcrumbs([{"depth":0,"label":"Home","fill":"white"}]);
-                        currentBreadcrumbData = [{"depth":0,"label":"Home","fill":"white"}];
+                        mallMap.currentSelectedPath = "";
+                        drawBreadcrumbs([{"depth":0,"label":"Home","id":myData.id,"fill":"white"}]);
+                        currentBreadcrumbData = [{"depth":0,"label":"Home","id":myData.id,"fill":"white"}];
                     }
                     var expandable = false;
                     if(myRoot.data === undefined){
@@ -570,6 +585,7 @@ function zoomToBounds(expandable,transitionTime) {
             breadcrumbData.push({
                 "depth":currentParent.depth,
                 "label":currentParent.data.name,
+                "id":currentParent.data.id,
                 "fill":currentParent.depth === 0 ? "white" : getPathFill(currentParent)
             })
             currentDepth = currentParent.depth;
@@ -583,20 +599,6 @@ function zoomToBounds(expandable,transitionTime) {
         return d.depth === 0 ? "transparent" : (d.data.group_color === undefined ?
             (d.data.colors[selectedColor] || mallMap.colors.fillColor) : d.data.group_color);
     }
-
-    my.drawRelativeGraph = function(graphData) {
-        const breadcrumbData = getBreadcrumbs(graphData);
-        drawBreadcrumbs(breadcrumbData);
-        //if expandable, add foldoutdata
-        if(graphData.data.expandable !== undefined){
-            addFoldoutData(graphData);
-        }
-        //redraw sunburst and zoom.
-        drawSunburst(graphData,false);
-        zoomToBounds(graphData.data.expandable === undefined ? false : true,1000);
-
-    }
-
 
     my.width = function(value) {
         if (!arguments.length) return width;
