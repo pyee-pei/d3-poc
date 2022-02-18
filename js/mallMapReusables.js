@@ -293,6 +293,7 @@ function zoomToBounds(expandable,transitionTime) {
     function nodeClick(event,d){
 
         if(d.depth > 0 && midTransition === false){
+            debugger;
             if(d.data.well_id !== undefined){
                 //if individual well click.
                 mallMap.currentSelectedPath = "";
@@ -324,6 +325,7 @@ function zoomToBounds(expandable,transitionTime) {
 
     function addFoldoutData(d){
 
+        debugger;
         if(d.data.highlight_date_offset !== undefined){
             mallMap.selectedParentNode = d.data.id;
             enableButtons(".buttonGroupfooter_div#compare");
@@ -910,6 +912,7 @@ function stackedBarChart() {
         newXDomain = [];
 
     function my(mySvg) {
+        console.log("drawing bar", mallMap.selectedParentNode);
         svg = mySvg;
 
         stackType =  mallMap.barMenuGroups[0];
@@ -950,7 +953,6 @@ function stackedBarChart() {
                 .append('rect').attr('class','barClipRect' + myClass);
             svg.append('clipPath').attr('id', 'lineClipPath' + myClass)
                 .append('rect').attr('class','lineClipRect' + myClass);
-            //svg.append("g").attr("class","axis xAxis" + myClass);
             svg.append("text").attr("class","axis xAxisLabelLeft" + myClass);
             svg.append("text").attr("class","axis xAxisLabelRight" + myClass);
             svg.append("g").attr("class","axis yAxis" + myClass);
@@ -1013,10 +1015,6 @@ function stackedBarChart() {
             .attr("font-size",10)
             .attr("text-anchor","end");
 
-      //  d3.select(".xAxis" + myClass)
-       //     .call(d3.axisBottom(xScaleTimeFiltered).tickValues(d3.extent(newXDomain)).tickFormat(d => d3.timeFormat("%d %b %y")(d)).tickSizeOuter(0))
-     //       .attr("transform","translate(" + margins.left + "," + (height + margins.top) + ")");
-
         d3.select(".xAxisBrush" + myClass)
             .call(d3.axisBottom(xScaleTime).tickValues(d3.extent(xDomain)).tickFormat(d => d3.timeFormat("%d %b %y")(d)).tickSizeOuter(0))
             .attr("transform","translate(" + margins.left + "," + (height + margins.top + 40) + ")");
@@ -1039,6 +1037,7 @@ function stackedBarChart() {
             .attr("x",-4)
 
         let selectedKeyIndex = 3,selectedDataIndex = 2;
+
         drawBar(currentData[selectedDataIndex], mallMap.barDateRange === "all" ? 0 : 1000,selectedKeyIndex);
 
         const barOptions = ["stack","split","proportion"];
@@ -1315,6 +1314,7 @@ function stackedBarChart() {
             var proportionKeys = JSON.parse(JSON.stringify(myKeys));
             proportionKeys = proportionKeys.map(d => d = d + "_proportion");
         }
+        //sort keys here
         const stackedData = d3.stack()
             .keys(barLayout === "proportion" ? proportionKeys : myKeys)
             (myBarData);
@@ -1379,8 +1379,18 @@ function stackedBarChart() {
             .attr("x",d => xScale(new Date(d.data.date)))
             .attr("width",visibleBandwidth)
             .attr("height",getBarHeight)
+            .attr("fill-opacity",mallMap.selectedParentNode === "" ? 1 : getStackOpacity)
             .attr("y",getBarYValue)
 
+        function getStackOpacity(d){
+            var oppKeys = Object.values(mallMap.oppIds);
+            var oppKeySelected = oppKeys.find(f => mallMap.selectedParentNode.includes(f));
+            if(oppKeySelected === undefined){
+                return 1;
+            } else {
+                return mallMap.selectedParentNode.includes(mallMap.oppIds[d.key]) ? 1 : 0.2;
+            }
+        }
     }
 
     function getBarHeight(d){

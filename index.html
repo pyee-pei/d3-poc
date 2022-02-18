@@ -26,6 +26,9 @@
     <div id="group_div">
         <span style="font-weight: bold;">GROUPS</span><br><br>
     </div>
+    <div id="curated_div">
+        <span style="font-weight: bold;">CURATED</span><br><br>
+    </div>
     <div id="well_div">
         <span style="font-weight: bold;">WELLS</span><br><br>
     </div>
@@ -116,7 +119,7 @@
         mallMap.extraChartData.map(m => m.date = convertDate(m.date))
         //build colourMatrix, matrixWellIds + groupNames from all_datasets[2] - prod-129
         wellNames = {},wellsByGroup = {};
-        var colourMatrix = {}, matrixWellIds = new Set(), groupNames = new Set(), wellsByGroup = {};
+        var colourMatrix = {}, matrixWellIds = new Set(), groupNames = new Set(), curatedNames = new Set(), wellsByGroup = {}, wellsByCurated = {};
         setColorsAndGroups();
         //this data is used to:
         //now add colours, and start/end dates or ExtraData if it is provided for relevant node
@@ -238,7 +241,7 @@
                         colourMatrix[n].push({"well_id":d.well_id === undefined ? d.name : d.well_id,"color":d[n]});
                     }
                     if(d.well_or_group === "group"){
-                        groupNames.add(d.name);
+                        //do not do anything
                     } else {
                         matrixWellIds.add(d.well_id);
                         wellNames[d.well_id] = d.name;
@@ -247,12 +250,20 @@
             })
             //build wellsByGroup
             matrixWellIds = Array.from(matrixWellIds.values());
+            all_datasets[3].forEach(d => d.group_type === "GROUPS" ? groupNames.add(d.group_name) : curatedNames.add(d.group_name));
             groupNames = Array.from(groupNames.values());
             groupNames.forEach(function(d){
                 var myWells = all_datasets[3].find(f => f.group_name === d).wells;
                 var myIds = [];
                 myWells.forEach(f => myIds.push(f.well_id));
                 wellsByGroup[d] = myIds;
+            })
+            curatedNames = Array.from(curatedNames.values());
+            curatedNames.forEach(function(d){
+                var myWells = all_datasets[3].find(f => f.group_name === d).wells;
+                var myIds = [];
+                myWells.forEach(f => myIds.push(f.well_id));
+                wellsByCurated[d] = myIds;
             })
         }
 
@@ -282,6 +293,30 @@
                 .attr("x",30)
                 .attr("y",(d,i) => (i*12))
                 .html(d => d + " (" + wellsByGroup[d].length + ")");
+
+            //adds an input, span + break for every groupName
+            var divGroup = d3.select("#curated_div").selectAll('.curatedDivInputs')
+                .data(curatedNames)
+                .join(function(group){
+                    var enter = group.append("g").attr("class","curatedDivInputs");
+                    enter.append("input").attr("class","curatedInput");
+                    enter.append("span").attr("class","curatedInputLabel");
+                    enter.append("br");
+                    return enter;
+                });
+
+            divGroup.select(".curatedInput")
+                .attr("id","group")
+                .attr("y",(d,i) => (i*12))
+                .attr("type","radio")
+                .attr("class","datasetChoice")
+                .attr("name","datasetChoice")
+                .attr("value", d => d);
+
+            divGroup.select(".curatedInputLabel")
+                .attr("x",30)
+                .attr("y",(d,i) => (i*12))
+                .html(d => d + " (" + wellsByCurated[d].length + ")");
 
             //populates Wells based on default.
             populateWells(matrixWellIds);
