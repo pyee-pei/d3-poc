@@ -47,7 +47,7 @@
 
 <script>
 
-    var clientId = 1009;
+    var clientId = 1005;
     var keyDate = "2022-02-11"; // updated by PYEE for testing
     d3.select("#keyDate").html(keyDate);
     var keyDateSplit = keyDate.split("-");
@@ -63,7 +63,8 @@
         d3.json("data/usStates.json"),
         d3.csv("data/stateCodes.csv"),
         d3.json("https://prod-105.westus.logic.azure.com:443/workflows/96b20533cfe147428096931541df7ec8/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=6Exj1Po-4hS1tQSNQzv4dVmp85h8L_uIgwOjfxXAuaA"),
-        d3.csv("data/ytd_production_data_min.csv")
+        d3.csv("data/ytd_production_data.csv"),
+       // d3.csv("data/loe_monthly_data.csv")
     ]
 
     Promise.all(promises).then(ready);
@@ -79,7 +80,11 @@
         mallMap.myWellCount = wellsN;
         all_datasets[0] = all_datasets[0][0];
         //filter ytd data to current client
+        //debugger;
         all_datasets[7] = all_datasets[7].filter(f => +f.client_id === clientId);
+        //all_datasets[7] = all_datasets[7].filter(f => convertDate(f.date) >= new Date(2021,7,1));
+        //all_datasets[8] = all_datasets[8].filter(f => +f.client_id === clientId);
+        //all_datasets[8] = all_datasets[8].filter(f => convertLOEDate(f.date) >= new Date(2021,7,1));
 
         d3.selectAll(".slider")
             .on("input",function(d){
@@ -112,11 +117,13 @@
 
         const clientWellData = all_datasets[6].find(f => f.client_id === clientId);
         mallMap.wellData = clientWellData.well_data;
-        let barMenuGroups = [];
+         let barMenuGroups = [];
         clientWellData.menu_groups.forEach(d => barMenuGroups.push(d.group));
         mallMap.barMenuGroups = barMenuGroups;
         mallMap.extraChartData = all_datasets[7];
+        //mallMap.extraChartDataLOE = all_datasets[7];
         mallMap.extraChartData.map(m => m.date = convertDate(m.date))
+       // mallMap.extraChartDataLOE.map(m => m.date = convertLOEDate(m.date))
         //build colourMatrix, matrixWellIds + groupNames from all_datasets[2] - prod-129
         wellNames = {},wellsByGroup = {};
         var colourMatrix = {}, matrixWellIds = new Set(), groupNames = new Set(), curatedNames = new Set(), wellsByGroup = {}, wellsByCurated = {};
@@ -157,6 +164,9 @@
                 }
                 //if highlight_date_offset, populate dateNodes with start+end date
                 if(c.highlight_date_offset !== undefined){
+                    if(c.id.includes("_")){
+                        console.log(c);
+                    }
                     var endDate = d3.timeDay.offset(keyDateFormatted,-c.highlight_date_offset + 1);
                     var startDate = d3.timeDay.offset(endDate,-(c.highlight_day_count));
                     dateNodes[c.id] = [startDate,endDate]
@@ -217,6 +227,11 @@
         function convertDate(myDate){
             myDate = myDate.split("/");
             return new Date(myDate[2],+myDate[0]-1,myDate[1]);
+        }
+
+        function convertLOEDate(myDate){
+            myDate = myDate.split("/");
+            return new Date(myDate[2],+myDate[1]-1,myDate[0]);
         }
 
         function setWellExtraData(){

@@ -1,4 +1,4 @@
-﻿loe_date,client_id,well_id,well_name,LOE Forecast,actual
+﻿date,client_id,well_id,well_name,forecast,actual
 2/1/2024,1009,44681,Schneider A 1,3091.1953,
 10/1/2020,1009,44665,Jumper 1,1771.8694,2534.4363
 4/1/2022,1009,44668,Thirsty Goat E Unit 1WA,12362.5967,

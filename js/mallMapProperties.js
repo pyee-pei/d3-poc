@@ -6,6 +6,7 @@ var mallMap = {
     "currentScale":1,
     "extraChartDivId":"",
     "extraChartData":{},
+    "extraChartDataLOE":{},
     "sunburstChart":"",
     "stackedBarChart":"",
     "wellData":{},
@@ -17,6 +18,7 @@ var mallMap = {
     "barDateRange":"all",
     "barDataFiltered":false,
     "selectedParentNode":"",
+    "clickedNode":"",
     "wellNames": {},
     "currentExtraChart": "bar",
     "currentWellIds":[],
@@ -25,7 +27,7 @@ var mallMap = {
     "barMenuGroups":[],
     "maxDepth":4,
     "tooltipExtraFields":{},
-    "oppColors":{"actual":"#4682B4","downtime":"#708090","unidentified":"#FFA500"},
+    "oppColors":{"actual":"#4682B4","downtime":"#A0A0A0","unidentified":"#FFA500"},
     "oppIds":{"actual":"-3-2-2-","downtime":"-3-2_1-","unidentified":"-3-2-3-"},
     "currentSelectedPath":""
 };

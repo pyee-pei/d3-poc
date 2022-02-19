@@ -76,35 +76,20 @@ function drawWellMap(){
     var height = +svg.attr("height");
     var width = +svg.attr("width");
 
-    var myExtraData = JSON.parse(JSON.stringify(mallMap.extraChartData));
-    var wellIds = new Set(),wellColours = {};
+    var currentWells = JSON.parse(JSON.stringify(mallMap.wellData));
     if(mallMap.currentWellIds.length > 0){
-        myExtraData = myExtraData.filter(f => mallMap.currentWellIds.indexOf(+f.well_id) > -1);
-    } else if(mallMap.selectedParentNode !== ""){
-        Object.keys(mallMap.wellExtraData).filter(f => f.includes(mallMap.selectedParentNode)).forEach(function(k){
-            mallMap.wellExtraData[k].forEach(function(k) {
-                wellIds.add(k.well_id);
-                wellColours[k.well_id] = k.node_color;
-            });
-        });
-        wellIds = Array.from(wellIds.values());
-        myExtraData = myExtraData.filter(f => wellIds.indexOf(+f.well_id) > -1);
+        currentWells = currentWells.filter(f => mallMap.currentWellIds.indexOf(+f.well_id) > -1);
     }
-    var groupedByWell = Array.from(d3.rollup(myExtraData,
-            v => d3.sum(v, s => Math.abs(s.actual_revenue_minus_royalty - s.ipc_revenue_minus_royalty)), d => d.well_id));
     var myData = [];
-    groupedByWell.forEach(function(d){
-        var oneWell = mallMap.wellData.find(f => f.well_id === +d[0]);
-        if(oneWell.longitude_surface !== undefined){
-            if(+oneWell.longitude_surface !== 0){
+    currentWells.forEach(function(d){
+        if(d.longitude_surface !== undefined){
+            if(+d.longitude_surface !== 0){
                 myData.push({
-                    "well_id": d[0],
-                    "difference":d[1],
-                    "wellName": oneWell.well_name,
-                    "long_lat":[+oneWell.longitude_surface,+oneWell.latitude_surface],
-                    "ipc": d3.sum(mallMap.extraChartData, s => s.well_id === d[0] ? s.ipc_revenue_minus_royalty : 0),
-                    "actual": d3.sum(mallMap.extraChartData, s => s.well_id === d[0] ? s.actual_revenue_minus_royalty : 0),
-                    "fill": wellColours[oneWell.well_id] === undefined ? null : wellColours[oneWell.well_id]
+                    "well_id": d.well_id,
+                    "wellName": d.well_name,
+                    "long_lat":[+d.longitude_surface,+d.latitude_surface],
+                    "radius_value": 1,
+                    "fill": "black"
                 })
             }
         }
