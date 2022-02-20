@@ -50,7 +50,7 @@ function mallMapChart() {
         let currentBreadcrumbData = [{"depth":0,"label":"Home","id": myData.id,"fill":"white"}];
         if(mallMap.currentSelectedPath !== ""){
             const pathData = allDepthRoot.descendants().find(f => f.depth === mallMap.currentSelectedPath.depth && f.data.id === mallMap.currentSelectedPath.node_id);
-            nodeClick({},pathData);
+            nodeClick({},pathData,root);
         } else {
             mallMap.currentSelectedPath = ""
             //draw breadcrumbs,chart and then zoomtobounds
@@ -272,7 +272,7 @@ function zoomToBounds(expandable,transitionTime) {
                     d3.selectAll(".pyramidBar").attr("opacity",1);
                 }
             })
-            .on("click",nodeClick);
+            .on("click",(event,d) => nodeClick(event,d,sunburstData));
 
         pathGroup.select(".pathLabel")
             .attr("opacity",1)
@@ -291,14 +291,16 @@ function zoomToBounds(expandable,transitionTime) {
             });
     }
 
-    function nodeClick(event,d){
+    function nodeClick(event,d,sunburstData){
 
-        if(d.depth > 0 && midTransition === false){
+        if(d.depth > 0 && midTransition === false  && (d.data.id !== mallMap.clickedNode)){
             mallMap.clickedNode = d.data.id;
             d3.selectAll(".stackedRect" + mallMap.extraChartDivId).attr("fill-opacity",1);
             if(d.data.well_id !== undefined){
                 //if individual well click.
                 mallMap.currentSelectedPath = "";
+                mallMap.selectedParentNode = "";
+                mallMap.previousParentNode = "";
                 mallMap.selectedColor = d.data.well_id;
                 var wellIds = [d.data.well_id];
                 mallMap.currentWellIds = wellIds;
@@ -310,7 +312,7 @@ function zoomToBounds(expandable,transitionTime) {
                 drawBreadcrumbs([{"depth":0,"label":"Home","id":myData.id,"fill":"white"},{"depth":0,"label":"BACK","id":"","fill":"#F0F0F0", "data":sunburstData.find(f => f.depth === d3.min(sunburstData, m => m.depth)),"breadcrumbs":currentBreadcrumbData}])
                 drawStackedBar();
             } else {
-                mallMap.currentSelectedPath = {"depth":d.depth,"node_id":d.data.id};
+                mallMap.currentSelectedPath = {"depth":d.depth,"node_id":d.data.id,"name":d.data.name};
                 //get breadcrumb data and redraw breadcrumb
                 currentBreadcrumbData = getBreadcrumbs(d);
                 drawBreadcrumbs(currentBreadcrumbData);
@@ -322,12 +324,16 @@ function zoomToBounds(expandable,transitionTime) {
                 drawSunburst(d,false);
                 zoomToBounds(d.data.expandable === undefined ? false : true,500);
             }
+        } else {
+            console.log('not clicking')
         }
     }
 
     function addFoldoutData(d){
 
         if(d.data.highlight_date_offset !== undefined){
+            console.log('has a date', d.data);
+            mallMap.previousParentNode = mallMap.selectedParentNode;
             mallMap.selectedParentNode = d.data.id;
             enableButtons(".buttonGroupfooter_div#compare");
             enableButtons(".buttonGroupfooter_div#tile");
@@ -366,6 +372,7 @@ function zoomToBounds(expandable,transitionTime) {
             //child of day level
             enableButtons(".buttonGroupfooter_div#compare");
             enableButtons(".buttonGroupfooter_div#tile");
+            mallMap.previousParentNode = mallMap.selectedParentNode;
             mallMap.selectedParentNode = d.parent.data.id;
                 //top or bottom 25
                 var myExtraData = JSON.parse(JSON.stringify(mallMap.extraChartData));
@@ -401,6 +408,7 @@ function zoomToBounds(expandable,transitionTime) {
                 }
         } else {
             mallMap.selectedParentNode = "";
+            mallMap.previousParentNode = "";
             disableButtons(".buttonGroupfooter_div#compare");
             //reset
             var myExtraData = JSON.parse(JSON.stringify(mallMap.extraChartData));
@@ -515,7 +523,7 @@ function zoomToBounds(expandable,transitionTime) {
                         if(myRoot.data === undefined){
                             breadcrumbData = currentBreadcrumbData;
                         }
-                        mallMap.currentSelectedPath = {"depth":d.depth,"node_id":d.id};
+                        mallMap.currentSelectedPath = {"depth":d.depth,"node_id":d.id,"name":d.name};
                         drawBreadcrumbs(breadcrumbData);
                         currentBreadcrumbData = breadcrumbData;
                     } else {
@@ -537,6 +545,7 @@ function zoomToBounds(expandable,transitionTime) {
                         addFoldoutData(myRoot);
                     } else {
                         mallMap.selectedParentNode = "";
+                        mallMap.previousParentNode = "";
                         disableButtons(".buttonGroupfooter_div#compare");
                         //reset
                         var myExtraData = JSON.parse(JSON.stringify(mallMap.extraChartData));
@@ -1257,7 +1266,6 @@ function stackedBarChart() {
                     var oppGroup = [["actual",actualTotal],["downtime",downtimeTotal],["unidentified",unidentifiedTotal]];
                     barData.push(getEntry(d[0],forecastTotal,actualTotal,oppGroup,[],myKeys))
                 })
-                console.log(JSON.stringify(dataProblems));
             }
 
 
@@ -1576,7 +1584,12 @@ function lineMultipleChart() {
         var myPositions = [];
         if(mallMap.selectedParentNode !== ""){
             myPositions = ["beat","middle","miss"];
-            filterType = myPositions[0];
+            var myIndex = myPositions.findIndex(f => f === mallMap.currentSelectedPath.name);
+            if(myIndex === -1){
+                filterType = myPositions[0];
+            } else {
+                filterType = myPositions[myIndex];
+            }
         }
 
         var chartWidth = (width - margins.left - margins.right)/5;
@@ -1797,6 +1810,10 @@ function lineMultipleChart() {
 
     }
 
+    my.toggleMenu = function () {
+        debugger;
+        return my;
+    }
     my.width = function(value) {
         if (!arguments.length) return width;
         width = value;

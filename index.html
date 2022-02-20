@@ -75,6 +75,15 @@
 
     function ready(all_datasets) {
 
+        //ALL DATASETS
+        //0 - aggregated individual well data (ie actual/forecast etc)
+        //1 - json structure
+        //2 - colour by well
+        //3 - groups, wells within each + sort order
+        //4/5 - map and county map (can be compressed)
+        //6 - well information - names etc.. (by client id - should it not be filtered already?
+        //7 - csv
+
         var wellsN = 25;
         mallMap.maxDepth = 4;
         mallMap.myWellCount = wellsN;
@@ -164,9 +173,6 @@
                 }
                 //if highlight_date_offset, populate dateNodes with start+end date
                 if(c.highlight_date_offset !== undefined){
-                    if(c.id.includes("_")){
-                        console.log(c);
-                    }
                     var endDate = d3.timeDay.offset(keyDateFormatted,-c.highlight_date_offset + 1);
                     var startDate = d3.timeDay.offset(endDate,-(c.highlight_day_count));
                     dateNodes[c.id] = [startDate,endDate]

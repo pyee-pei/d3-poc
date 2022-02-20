@@ -107,6 +107,7 @@ function drawWellMap(){
 
 function drawStackedBar(filteredData){
 
+
     if(filteredData !== undefined && filteredData.length === 0){
         d3.select("." + mallMap.extraChartDivId  + "Svg").selectAll("*").remove();
     } else {
@@ -143,20 +144,26 @@ function drawLineMultiples(){
         d3.select("." + mallMap.extraChartDivId  + "Svg").selectAll("*").remove();
     }
 
-    var svg = d3.select("." + mallMap.extraChartDivId  + "Svg").style("height",originalHeight + "px");;
+    var svg = d3.select("." + mallMap.extraChartDivId  + "Svg").style("height",originalHeight + "px");
 
     var height = +svg.attr("height");
     var width = +svg.attr("width");
     var margins = {"left":10,"right":10,"top":30,"bottom":10};
 
-    var my_chart = lineMultipleChart()
-        .width(width)
-        .height(height)
-        .margins(margins)
-        .myData(chartData)
-        .myClass(mallMap.extraChartDivId );
+    if(mallMap.selectedParentNode !== mallMap.previousParentNode  || mallMap.selectedParentNode === ""){
+        console.log(mallMap.selectedParentNode, mallMap.previousParentNode)
+        mallMap.lineMultipleChart = lineMultipleChart()
+            .width(width)
+            .height(height)
+            .margins(margins)
+            .myData(chartData)
+            .myClass(mallMap.extraChartDivId );
 
-    my_chart(svg);
+        mallMap.lineMultipleChart(svg);
+        console.log('drawing tile')
+    } else {
+        mallMap.lineMultipleChart.toggleMenu();
+    }
 }
 
 
