@@ -1482,13 +1482,28 @@ function stackedBarChart() {
 
         barGroup.select(".stackedRect" + myClass)
             .attr("fill-opacity", d => getStackOpacity(d.key))
-           // .interrupt()
-           // .transition()
-          //  .duration(yAxisTransitionTime)
             .attr("x",d => xScale(new Date(d.data.date)) + (xScale.bandwidth()/2))
             .attr("width",xScale.bandwidth())
             .attr("height",getBarHeight)
             .attr("y",getBarYValue)
+            .on("mouseover",function(event,d){
+                if(+d3.select(this).attr("width") > 5){
+                    const tooltipText = "Date: " + d3.timeFormat("%d %b %Y")(new Date(d.data.date)) + "<br>"
+                    + "Total For Date: " + d3.format(".2f")(d.data.total) + "<br>";
+                    var svgBounds = d3.select("." + myClass + "Svg").node().getBoundingClientRect();
+                    d3.select(".d3_tooltip")
+                        .style("visibility","visible")
+                        .style("top",(event.offsetY + svgBounds.y) + "px")
+                        .style("left",(event.offsetX + svgBounds.x + 10) + "px")
+                        .html(tooltipText);
+
+                }
+            })
+            .on("mouseout",function(){
+                d3.select(".d3_tooltip").style("visibility","hidden");
+                d3.selectAll(".pyramidBar").attr("opacity",1);
+                d3.selectAll(".sunburstPath").attr("opacity",1);
+            })
     }
 
     function getStackOpacity(myValue){
