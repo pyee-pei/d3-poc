@@ -953,8 +953,6 @@ function stackedBarChart() {
         yScaleProportion = d3.scaleLinear().domain([0,1]).range([height,0]);
         yScale = "",scaleNumber = 0, myKeys = "",yMax = 0;
         newXDomain = xDomain;
-        yMax = d3.max(currentData[currentDataIndex], d => Math.max(d.total,d.actual_total));
-        yScale = d3.scaleLinear().domain([0,yMax]).range([height,0]);
 
         if(d3.select(".chartGroup" + myClass)._groups[0][0] === null) {
 
@@ -973,6 +971,24 @@ function stackedBarChart() {
             svg.append("g").attr("class","zeroLine" + myClass);
             svg.append("path").attr("class","ipcLine" + myClass);
             svg.append("text").attr("class","dayCount" + myClass);
+            svg.append("text").attr("class","barTitle" + myClass);
+            svg.append("text").attr("class","yAxisTitle" + myClass);
+        }
+
+        d3.select(".barTitle" + myClass)
+            .style("text-transform","uppercase")
+            .attr("x", margins.left + (width/2))
+            .attr("y", 20)
+            .attr("text-anchor","middle");
+
+        d3.select(".yAxisTitle" + myClass)
+            .style("text-transform","uppercase")
+            .attr("text-anchor","middle")
+            .attr("transform","translate(40," + + (margins.top + (height/2)) + ") rotate(-90)")
+            .text("Cash Flow Data");
+
+        if(mallMap.currentWellIds.length === 0){
+            d3.select(".barTitle" + myClass).text("all")
         }
 
         let brushRange = [0,width];
@@ -1150,6 +1166,8 @@ function stackedBarChart() {
                 d3.select(this).attr("opacity",1);
                 stackType = d;
                 currentData = getDatabyStackOption();
+                var currentExtent = d3.extent(xScale.domain());
+                currentData[0] = currentData[0].filter(f => f.date >= currentExtent[0] && f.date <= currentExtent[1]);
                 drawBar(currentData[0],0);
                 drawLegend(myKeys.filter(f => f !== undefined));
 
@@ -1234,10 +1252,10 @@ function stackedBarChart() {
                     var actualTotal = d3.sum(d[1], s => +s.actual);
                     //group actual by keys
                     var stackData = Array.from(d3.rollup(d[1], v => d3.sum(v, s => +s.actual)
-                        , g => mallMap.wellData.find(f => f.well_id === +g.well_id)[stackType]));
+                        , g => mallMap.wellData.find(f => f.well_id === +g.well_id) === undefined ? 0 : mallMap.wellData.find(f => f.well_id === +g.well_id)[stackType]));
                     //group forecast by keys
                     var forecastStackData = Array.from(d3.rollup(d[1], v => d3.sum(v, s => +s.forecast)
-                        , g => mallMap.wellData.find(f => f.well_id === +g.well_id)[stackType]));
+                        , g => mallMap.wellData.find(f => f.well_id === +g.well_id) === undefined ? 0 : mallMap.wellData.find(f => f.well_id === +g.well_id)[stackType]));
                     myKeys.forEach(k => stackData.find(f => f[0] === k) === undefined ? stackData.push([k,0]) : "");
                     myKeys.forEach(k => stackData.find(f => f[0] === k) === undefined ? forecastStackData.push([k,0]) : "");
                     barData.push(getEntry(d[0], forecastTotal, actualTotal, stackData, forecastStackData, myKeys));
@@ -1264,7 +1282,7 @@ function stackedBarChart() {
                     }
                     //build stack
                     var oppGroup = [["actual",actualTotal],["downtime",downtimeTotal],["unidentified",unidentifiedTotal]];
-                    barData.push(getEntry(d[0],forecastTotal,actualTotal,oppGroup,[],myKeys))
+                    barData.push(getEntry(d[0],forecastTotal,actualTotal+downtimeTotal+unidentifiedTotal,oppGroup,[],myKeys))
                 })
             }
 
@@ -1314,6 +1332,9 @@ function stackedBarChart() {
         xScale = d3.scaleBand().domain(newXDomain).range([0,width]);
         visibleBandwidth = xScale.bandwidth();
         xScaleTimeFiltered = d3.scaleTime().domain(d3.extent(newXDomain)).range([0,width]);
+
+        yMax = d3.max(currentData[currentDataIndex], d => Math.max(d.total,d.actual_total));
+        yScale = d3.scaleLinear().domain([0,yMax]).range([height,0]);
 
         if(barLayout === "proportion"){
             if(myKeys.indexOf("remainder") === -1){
@@ -1460,13 +1481,13 @@ function stackedBarChart() {
             });
 
         barGroup.select(".stackedRect" + myClass)
-            .interrupt()
-            .transition()
-            .duration(yAxisTransitionTime)
+            .attr("fill-opacity", d => getStackOpacity(d.key))
+           // .interrupt()
+           // .transition()
+          //  .duration(yAxisTransitionTime)
             .attr("x",d => xScale(new Date(d.data.date)) + (xScale.bandwidth()/2))
             .attr("width",xScale.bandwidth())
             .attr("height",getBarHeight)
-            .attr("fill-opacity", d => getStackOpacity(d.key))
             .attr("y",getBarYValue)
     }
 

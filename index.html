@@ -22,7 +22,7 @@
         Client ID: <select class = "clientSelect"><option>1009</option><option>1005</option></select><br>
         Key Date: <select class = "dateSelect"><option>2022-02-11</option><option>2021-04-30</option></select><br>
              </span>
-        <input type="radio" class="datasetChoice" name="datasetChoice" id="functional" value="functional" checked><label for="functional" style="font-weight: bold;">FUNCTIONAL</label>
+        <input type="radio" class="datasetChoice" name="datasetChoice" id="functional" value="functional"><label for="functional" style="font-weight: bold;">FUNCTIONAL</label>
     </div>
     <div id="group_div">
         <span style="font-weight: bold;">GROUPS</span><br><br>
@@ -95,7 +95,6 @@
 
     function ready(all_datasets) {
 
-        debugger;
         //ALL DATASETS
         //0 - aggregated individual well data (ie actual/forecast etc)
         //1 - json structure
@@ -110,10 +109,8 @@
         mallMap.myWellCount = wellsN;
         all_datasets[0] = all_datasets[0][0];
         //filter ytd data to current client
-        //debugger;
         all_datasets[7] = all_datasets[7].filter(f => +f.client_id === clientId);
 
-        debugger;
         //all_datasets[7] = all_datasets[7].filter(f => convertDate(f.date) >= new Date(2021,7,1));
         //all_datasets[8] = all_datasets[8].filter(f => +f.client_id === clientId);
         //all_datasets[8] = all_datasets[8].filter(f => convertLOEDate(f.date) >= new Date(2021,7,1));
@@ -341,6 +338,9 @@
                 .attr("y",(d,i) => (i*12))
                 .html(d => d + " (" + wellsByGroup[d].length + ")");
 
+            //checking the first on the list which is always All
+            document.getElementById("group").checked = true
+
             //adds an input, span + break for every groupName
             var divGroup = d3.select("#curated_div").selectAll('.curatedDivInputs')
                 .data(curatedNames)
@@ -353,7 +353,7 @@
                 });
 
             divGroup.select(".curatedInput")
-                .attr("id","group")
+                .attr("id","curatedGroup")
                 .attr("y",(d,i) => (i*12))
                 .attr("type","radio")
                 .attr("class","datasetChoice")
@@ -407,13 +407,21 @@
                             //if it is a group, repopulate well and wellIds (multiple)
                             populateWells(wellsByGroup[this.value]);
                             wellIds = wellsByGroup[this.value];
+                            d3.select(".barTitleextra_chart_div").text(this.value);
+                        } else if(this.id === "curatedGroup"){
+                            //if it is a group, repopulate well and wellIds (multiple)
+                            populateWells(wellsByCurated[this.value]);
+                            wellIds = wellsByCurated[this.value];
+                            d3.select(".barTitleextra_chart_div").text(this.value);
                         } else if(this.id === "functional"){
                             //if functional set wellIds to empty, so all data shown by default
                             wellIds = [];
+                            d3.select(".barTitleextra_chart_div").text("ALL");
                         }
                         if (wellIds.length === 1) {
                             //disable/enable tile button depending on whether 1 or multiple/zero wells
                             disableButtons(".buttonGroupfooter_div#tile");
+                            d3.select(".barTitleextra_chart_div").text(mallMap.wellNames[this.value]);
                         } else {
                             enableButtons(".buttonGroupfooter_div#tile");
                         }
