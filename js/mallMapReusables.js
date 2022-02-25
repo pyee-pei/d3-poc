@@ -1299,7 +1299,6 @@ function stackedBarChart() {
                     "Atotal":d3.sum(dataStack, d => d[1]),
                     "remainder_proportion":(forecastTotal-d3.sum(dataStack, d => d[1]))/forecastTotal
                 }
-                debugger;
                 if(currentEntry.remainder_proportion < 0){currentEntry.remainder_proportion = 0};
                 if(currentEntry.remainder_proportion > 1){currentEntry.remainder_proportion = 1};
 
@@ -1490,13 +1489,14 @@ function stackedBarChart() {
             .on("mouseover",function(event,d){
                 if(+d3.select(this).attr("width") > 5){
                     const tooltipText = "Date: " + d3.timeFormat("%d %b %Y")(new Date(d.data.date)) + "<br>"
-                    + "Total For Date: " + d3.format(".2f")(d.data.ATotal) + "<br>";
+                        + d.key + ": " + d.data[d.key] + "<br>"
+                    + "Total For Date: " + d3.format(".2f")(d.data.Atotal) + "<br>";
                     var svgBounds = d3.select("." + myClass + "Svg").node().getBoundingClientRect();
                     d3.select(".d3_tooltip")
                         .style("visibility","visible")
                         .style("top",(event.offsetY + svgBounds.y) + "px")
                         .style("left",(event.offsetX + svgBounds.x + 10) + "px")
-                        .html(JSON.stringify(d.data).replace(/,/g, "<br>"));
+                        .html(tooltipText);
 
                 }
             })
@@ -1848,7 +1848,6 @@ function lineMultipleChart() {
     }
 
     my.toggleMenu = function () {
-        debugger;
         return my;
     }
     my.width = function(value) {
