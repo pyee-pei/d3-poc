@@ -978,7 +978,7 @@ function stackedBarChart() {
         d3.select(".barTitle" + myClass)
             .style("text-transform","uppercase")
             .attr("x", margins.left + (width/2))
-            .attr("y", 20)
+            .attr("y", 14)
             .attr("text-anchor","middle");
 
         d3.select(".yAxisTitle" + myClass)
