@@ -985,7 +985,7 @@ function stackedBarChart() {
             .style("text-transform","uppercase")
             .attr("text-anchor","middle")
             .attr("transform","translate(40," + + (margins.top + (height/2)) + ") rotate(-90)")
-            .text("Cash Flow Data");
+            .text("Revenue");
 
         if(mallMap.currentWellIds.length === 0){
             d3.select(".barTitle" + myClass).text("all")
