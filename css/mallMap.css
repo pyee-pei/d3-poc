@@ -9,7 +9,7 @@ body{
 
 #header_div {
   width: 12vw;
-  height:calc(100vh - 120px);
+  height:calc(100vh - 150px);
   text-align: center;
   background-color: #A0A0A0;
   float:left;
@@ -19,7 +19,7 @@ body{
   float: left;
   border: white 3px solid;
   width: calc(12vw - 10px);
-  height:90px;
+  height:120px;
   padding-left: 4px;
   background-color: #F0F0F0;
   text-align: left;
@@ -29,7 +29,7 @@ body{
   height: 9px;
 }
 
-.slider_span{
+.slider_span, option, select{
   font-size: 12px;
 }
 #group_div{
@@ -52,7 +52,7 @@ body{
   padding-left: 4px;
   background-color: #D0D0D0;
   width: calc(12vw - 10px);
-  height: calc(100vh - 356px);
+  height: calc(100vh - 386px);
   overflow-x: hidden;
   overflow-y: auto;
   border: white 3px solid;

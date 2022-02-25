@@ -18,9 +18,10 @@
         <input type="range" class="slider" id="depth" name="depth" min="1" max="6" value="4">&nbsp;<span id="depth_val">4</span><br>
         N:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
         <input type="range"class="slider"  id="n" name="n" min="5" max="25" value="25">&nbsp;<span id="n_val">25</span><br>
-            Key Date: <span id="keyDate">25</span><br>
-            </span>
 
+        Client ID: <select class = "clientSelect"><option>1009</option><option>1005</option></select><br>
+        Key Date: <select class = "dateSelect"><option>2022-02-11</option><option>2021-04-30</option></select><br>
+             </span>
         <input type="radio" class="datasetChoice" name="datasetChoice" id="functional" value="functional" checked><label for="functional" style="font-weight: bold;">FUNCTIONAL</label>
     </div>
     <div id="group_div">
@@ -47,27 +48,46 @@
 
 <script>
 
-    var clientId = 1005;
-    var keyDate = "2022-04-30"; // updated by PYEE for testing
-    d3.select("#keyDate").html(keyDate);
-    var keyDateSplit = keyDate.split("-");
-    var keyDateFormatted = new Date(keyDateSplit[0],+keyDateSplit[1]-1,keyDateSplit[2]);
-    var promises = [
-        d3.json("https://prod-97.westus.logic.azure.com:443/workflows/909974398dd34ff3a28a0c468e54d2be/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=7gRYpMmX2thjblij6wfcbJMePRg9pFrr_Ppz-blAxbU",
-            {method: "POST",body:JSON.stringify({client_id:clientId,key_date:keyDate,n:25}),headers:{"Content-Type":"application/json"}}),
-        d3.json("https://prod-44.westus.logic.azure.com:443/workflows/f813d130506449c7aaf7e99e00776141/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=e-6x-Szn7DEoQDwAVwCSWmWXsJMFoQbMEV2VJbN6Suk"),
-        d3.json("https://prod-129.westus.logic.azure.com:443/workflows/7f48f62137f54267a91e4b83687a2f83/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=F6ozaxNeplqKgzgQ7vgbV6_dKx97cHcLrKCxwB3eY1Y",
-            {method: "POST",body:JSON.stringify({client_id:clientId}),headers:{"Content-Type":"application/json"}}),
-        d3.json("https://prod-177.westus.logic.azure.com:443/workflows/c5fcf01bfec54a25a6a7a5a41c981d35/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=K1iAuIu-VbhfketSSHWOe5hHt2AO_lx0N8z_ceSNXK8",
-            {method: "POST",body:JSON.stringify({client_id:clientId}),headers:{"Content-Type":"application/json"}}),
-        d3.json("data/usStates.json"),
-        d3.csv("data/stateCodes.csv"),
-        d3.json("https://prod-105.westus.logic.azure.com:443/workflows/96b20533cfe147428096931541df7ec8/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=6Exj1Po-4hS1tQSNQzv4dVmp85h8L_uIgwOjfxXAuaA"),
-        d3.csv("data/ytd_production_data.csv"),
-       // d3.csv("data/loe_monthly_data.csv")
-    ]
+    let clientId = 1009;
+    let keyDate = "2022-02-11"; // updated by PYEE for testing
+    let keyDateSplit = keyDate.split("-");
+    let keyDateFormatted = new Date(keyDateSplit[0],+keyDateSplit[1]-1,keyDateSplit[2]);
 
-    Promise.all(promises).then(ready);
+    d3.select( ".clientSelect")
+        .on("change", function(d){
+            clientId = +this.value;
+            resetChart();
+        })
+
+    d3.select( ".dateSelect")
+        .on("change", function(d){
+            keyDate = this.value;
+            keyDateSplit = keyDate.split("-");
+            keyDateFormatted = new Date(keyDateSplit[0],+keyDateSplit[1]-1,keyDateSplit[2]);
+            resetChart();
+        })
+
+    resetChart();
+
+    function resetChart(){
+        var promises = [
+            d3.json("https://prod-97.westus.logic.azure.com:443/workflows/909974398dd34ff3a28a0c468e54d2be/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=7gRYpMmX2thjblij6wfcbJMePRg9pFrr_Ppz-blAxbU",
+                {method: "POST",body:JSON.stringify({client_id:clientId,key_date:keyDate,n:25}),headers:{"Content-Type":"application/json"}}),
+            d3.json("https://prod-44.westus.logic.azure.com:443/workflows/f813d130506449c7aaf7e99e00776141/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=e-6x-Szn7DEoQDwAVwCSWmWXsJMFoQbMEV2VJbN6Suk"),
+            d3.json("https://prod-129.westus.logic.azure.com:443/workflows/7f48f62137f54267a91e4b83687a2f83/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=F6ozaxNeplqKgzgQ7vgbV6_dKx97cHcLrKCxwB3eY1Y",
+                {method: "POST",body:JSON.stringify({client_id:clientId}),headers:{"Content-Type":"application/json"}}),
+            d3.json("https://prod-177.westus.logic.azure.com:443/workflows/c5fcf01bfec54a25a6a7a5a41c981d35/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=K1iAuIu-VbhfketSSHWOe5hHt2AO_lx0N8z_ceSNXK8",
+                {method: "POST",body:JSON.stringify({client_id:clientId}),headers:{"Content-Type":"application/json"}}),
+            d3.json("data/usStates.json"),
+            d3.csv("data/stateCodes.csv"),
+            d3.json("https://prod-105.westus.logic.azure.com:443/workflows/96b20533cfe147428096931541df7ec8/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=6Exj1Po-4hS1tQSNQzv4dVmp85h8L_uIgwOjfxXAuaA"),
+            d3.csv("data/ytd_production_data.csv"),
+            // d3.csv("data/loe_monthly_data.csv")
+        ]
+        Promise.all(promises).then(ready);
+
+    }
+
 
     //My thought was that you could fetch the data in whichever way you chose and THEN pass it to the ready
     //function (we could rename it also).
@@ -129,6 +149,9 @@
 
         const clientWellData = all_datasets[6].find(f => f.client_id === clientId);
         mallMap.wellData = clientWellData.well_data;
+        //filter out wells in csv that do not exist in well data
+        all_datasets[7].map(m => m.well_id = +m.well_id);
+        all_datasets[7].filter(f =>  mallMap.wellData.filter(w => w.well_id === f.well_id).length > 0)
          let barMenuGroups = [];
         clientWellData.menu_groups.forEach(d => barMenuGroups.push(d.group));
         mallMap.barMenuGroups = barMenuGroups;
