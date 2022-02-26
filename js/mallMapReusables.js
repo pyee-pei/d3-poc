@@ -953,8 +953,6 @@ function stackedBarChart() {
         yScaleProportion = d3.scaleLinear().domain([0,1]).range([height,0]);
         yScale = "",scaleNumber = 0, myKeys = "",yMax = 0;
         newXDomain = xDomain;
-        yMax = d3.max(currentData[currentDataIndex], d => Math.max(d.total,d.actual_total));
-        yScale = d3.scaleLinear().domain([0,yMax]).range([height,0]);
 
         if(d3.select(".chartGroup" + myClass)._groups[0][0] === null) {
 
@@ -973,6 +971,24 @@ function stackedBarChart() {
             svg.append("g").attr("class","zeroLine" + myClass);
             svg.append("path").attr("class","ipcLine" + myClass);
             svg.append("text").attr("class","dayCount" + myClass);
+            svg.append("text").attr("class","barTitle" + myClass);
+            svg.append("text").attr("class","yAxisTitle" + myClass);
+        }
+
+        d3.select(".barTitle" + myClass)
+            .style("text-transform","uppercase")
+            .attr("x", margins.left + (width/2))
+            .attr("y", 14)
+            .attr("text-anchor","middle");
+
+        d3.select(".yAxisTitle" + myClass)
+            .style("text-transform","uppercase")
+            .attr("text-anchor","middle")
+            .attr("transform","translate(40," + + (margins.top + (height/2)) + ") rotate(-90)")
+            .text("Revenue");
+
+        if(mallMap.currentWellIds.length === 0){
+            d3.select(".barTitle" + myClass).text("all")
         }
 
         let brushRange = [0,width];
@@ -1150,6 +1166,8 @@ function stackedBarChart() {
                 d3.select(this).attr("opacity",1);
                 stackType = d;
                 currentData = getDatabyStackOption();
+                var currentExtent = d3.extent(xScale.domain());
+                currentData[0] = currentData[0].filter(f => f.date >= currentExtent[0] && f.date <= currentExtent[1]);
                 drawBar(currentData[0],0);
                 drawLegend(myKeys.filter(f => f !== undefined));
 
@@ -1234,10 +1252,10 @@ function stackedBarChart() {
                     var actualTotal = d3.sum(d[1], s => +s.actual);
                     //group actual by keys
                     var stackData = Array.from(d3.rollup(d[1], v => d3.sum(v, s => +s.actual)
-                        , g => mallMap.wellData.find(f => f.well_id === +g.well_id)[stackType]));
+                        , g => mallMap.wellData.find(f => f.well_id === +g.well_id) === undefined ? 0 : mallMap.wellData.find(f => f.well_id === +g.well_id)[stackType]));
                     //group forecast by keys
                     var forecastStackData = Array.from(d3.rollup(d[1], v => d3.sum(v, s => +s.forecast)
-                        , g => mallMap.wellData.find(f => f.well_id === +g.well_id)[stackType]));
+                        , g => mallMap.wellData.find(f => f.well_id === +g.well_id) === undefined ? 0 : mallMap.wellData.find(f => f.well_id === +g.well_id)[stackType]));
                     myKeys.forEach(k => stackData.find(f => f[0] === k) === undefined ? stackData.push([k,0]) : "");
                     myKeys.forEach(k => stackData.find(f => f[0] === k) === undefined ? forecastStackData.push([k,0]) : "");
                     barData.push(getEntry(d[0], forecastTotal, actualTotal, stackData, forecastStackData, myKeys));
@@ -1251,7 +1269,7 @@ function stackedBarChart() {
                     var forecastTotal = d3.sum(d[1], s => +s.forecast);
                     var actualTotal = d3.sum(d[1], s => +s.actual);
                     var downtimeTotal = d3.sum(d[1], s => +s.reported_downtime_lost_revenue);
-                    var unidentifiedTotal =  d3.sum(d[1], s => +s.unidentified_lost_revenue);
+                    var unidentifiedTotal =  d3.sum(d[1], s => +s.unidentified_lost_revenue < 0 ? 0 : +s.unidentified_lost_revenue);
                     if((actualTotal < forecastTotal) && ((actualTotal + downtimeTotal + unidentifiedTotal) > forecastTotal)){
                         dataProblems.push({
                             "date": d[0],
@@ -1264,7 +1282,7 @@ function stackedBarChart() {
                     }
                     //build stack
                     var oppGroup = [["actual",actualTotal],["downtime",downtimeTotal],["unidentified",unidentifiedTotal]];
-                    barData.push(getEntry(d[0],forecastTotal,actualTotal,oppGroup,[],myKeys))
+                    barData.push(getEntry(d[0],forecastTotal,oppGroup,[],myKeys))
                 })
             }
 
@@ -1273,13 +1291,13 @@ function stackedBarChart() {
 
             return [barData,myKeys];
 
-            function getEntry(myDate,forecastTotal,actualTotal,dataStack,ipcStackData,myKeys){
+            function getEntry(myDate,forecastTotal,dataStack,ipcStackData,myKeys){
 
                 var currentEntry = {
                     "date":myDate,
-                    "total": forecastTotal,
-                    "actual_total":actualTotal,
-                    "remainder_proportion":(forecastTotal-actualTotal)/forecastTotal
+                    "Ftotal": forecastTotal,
+                    "Atotal":d3.sum(dataStack, d => d[1]),
+                    "remainder_proportion":(forecastTotal-d3.sum(dataStack, d => d[1]))/forecastTotal
                 }
                 if(currentEntry.remainder_proportion < 0){currentEntry.remainder_proportion = 0};
                 if(currentEntry.remainder_proportion > 1){currentEntry.remainder_proportion = 1};
@@ -1315,6 +1333,9 @@ function stackedBarChart() {
         visibleBandwidth = xScale.bandwidth();
         xScaleTimeFiltered = d3.scaleTime().domain(d3.extent(newXDomain)).range([0,width]);
 
+        yMax = d3.max(currentData[currentDataIndex], d => Math.max(d.Ftotal,d.Atotal));
+        yScale = d3.scaleLinear().domain([0,yMax]).range([height,0]);
+
         if(barLayout === "proportion"){
             if(myKeys.indexOf("remainder") === -1){
                 myKeys.push("remainder");
@@ -1327,7 +1348,7 @@ function stackedBarChart() {
 
         line = d3.line()
             .x(d => xScale(new Date(d.date)) + (visibleBandwidth/2))
-            .y(d => yScale(d.total));
+            .y(d => yScale(d.Ftotal));
 
         lineProportion = d3.line()
             .x(d => xScale(new Date(d.date)) + (visibleBandwidth/2))
@@ -1460,14 +1481,30 @@ function stackedBarChart() {
             });
 
         barGroup.select(".stackedRect" + myClass)
-            .interrupt()
-            .transition()
-            .duration(yAxisTransitionTime)
+            .attr("fill-opacity", d => getStackOpacity(d.key))
             .attr("x",d => xScale(new Date(d.data.date)) + (xScale.bandwidth()/2))
             .attr("width",xScale.bandwidth())
             .attr("height",getBarHeight)
-            .attr("fill-opacity", d => getStackOpacity(d.key))
             .attr("y",getBarYValue)
+            .on("mouseover",function(event,d){
+                if(+d3.select(this).attr("width") > 5){
+                    const tooltipText = "Date: " + d3.timeFormat("%d %b %Y")(new Date(d.data.date)) + "<br>"
+                        + d.key + ": " + d.data[d.key] + "<br>"
+                    + "Total For Date: " + d3.format(".2f")(d.data.Atotal) + "<br>";
+                    var svgBounds = d3.select("." + myClass + "Svg").node().getBoundingClientRect();
+                    d3.select(".d3_tooltip")
+                        .style("visibility","visible")
+                        .style("top",(event.offsetY + svgBounds.y) + "px")
+                        .style("left",(event.offsetX + svgBounds.x + 10) + "px")
+                        .html(tooltipText);
+
+                }
+            })
+            .on("mouseout",function(){
+                d3.select(".d3_tooltip").style("visibility","hidden");
+                d3.selectAll(".pyramidBar").attr("opacity",1);
+                d3.selectAll(".sunburstPath").attr("opacity",1);
+            })
     }
 
     function getStackOpacity(myValue){
@@ -1811,7 +1848,6 @@ function lineMultipleChart() {
     }
 
     my.toggleMenu = function () {
-        debugger;
         return my;
     }
     my.width = function(value) {
