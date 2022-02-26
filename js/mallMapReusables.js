@@ -1269,7 +1269,7 @@ function stackedBarChart() {
                     var forecastTotal = d3.sum(d[1], s => +s.forecast);
                     var actualTotal = d3.sum(d[1], s => +s.actual);
                     var downtimeTotal = d3.sum(d[1], s => +s.reported_downtime_lost_revenue);
-                    var unidentifiedTotal =  d3.sum(d[1], s => +s.unidentified_lost_revenue < 0 ? 0 : +s.unidentified_lost_revenue);
+                    var unidentifiedTotal =  d3.sum(d[1], s => +s.unidentified_lost_revenue);
                     if((actualTotal < forecastTotal) && ((actualTotal + downtimeTotal + unidentifiedTotal) > forecastTotal)){
                         dataProblems.push({
                             "date": d[0],
