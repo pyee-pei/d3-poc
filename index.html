@@ -81,7 +81,8 @@
             d3.json("data/usStates.json"),
             d3.csv("data/stateCodes.csv"),
             d3.json("https://prod-105.westus.logic.azure.com:443/workflows/96b20533cfe147428096931541df7ec8/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=6Exj1Po-4hS1tQSNQzv4dVmp85h8L_uIgwOjfxXAuaA"),
-            d3.csv("data/prod_data_1009.csv"),
+            dj.csv("https://peimactblobstorage.blob.core.windows.net/client-portal/production/ae4a5958-b26a-4cc0-a1cb-f635091f0506/part-00000-tid-2812021023926514846-976fe7b0-0564-4975-834d-65cbc759a931-0-1-c000.csv"),
+            //d3.csv("data/prod_data_1009.csv"),
             // d3.csv("data/loe_monthly_data.csv")
         ]
         Promise.all(promises).then(ready);
