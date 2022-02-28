@@ -32,7 +32,7 @@ body{
 .slider_span, option, select{
   font-size: 12px;
 }
-#group_div{
+#group_div, #curated_div{
   float: left;
   text-align: left;
   padding-top: 4px;
@@ -109,7 +109,7 @@ body{
   fill: #707070;
 }
 
-.groupInputLabel, .wellInputLabel{
+.groupInputLabel, .wellInputLabel, .curatedInputLabel{
   font-size: 12px;
 }
 
