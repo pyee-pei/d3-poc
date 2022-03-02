@@ -39,7 +39,6 @@ function resetChart(){
 
 
 function ready(all_datasets) {
-    debugger;
 
     //ALL DATASETS
     //0 - aggregated individual well data (ie actual/forecast etc)
