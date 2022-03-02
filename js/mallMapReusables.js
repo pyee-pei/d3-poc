@@ -3,7 +3,7 @@ function measureWidth(my_text,fontSize){
     const context = document.createElement("canvas")
         .getContext("2d");
 
-    if(fontSize === undefined){fontSize = 10};
+    if(fontSize === undefined){fontSize = 10}
 
     return context.measureText(my_text).width  * (fontSize/14);
 }
@@ -24,9 +24,8 @@ function mallMapChart() {
         root = "",
         allDepthRoot = {};
 
-    function my(mySvg) {
+    function my() {
 
-        //svg = zoomSvg
         svg = d3.select(".zoomSvg" + myClass);
         //calc chartWidth + radius
         chartWidth = Math.min(width, height);
@@ -50,6 +49,7 @@ function mallMapChart() {
         let currentBreadcrumbData = [{"depth":0,"label":"Home","id": myData.id,"fill":"white"}];
         if(mallMap.currentSelectedPath !== ""){
             const pathData = allDepthRoot.descendants().find(f => f.depth === mallMap.currentSelectedPath.depth && f.data.id === mallMap.currentSelectedPath.node_id);
+            mallMap.clickedNode = "";
             nodeClick({},pathData,root);
         } else {
             mallMap.currentSelectedPath = ""
@@ -71,12 +71,12 @@ function mallMapChart() {
     }
 
 
-    function pathText(d,includeZero){
+    function pathText(d){
 
         var heightCheck = (d.y0 + d.y1) / 2 * (d.x1 - d.x0);
-        heightCheck = includeZero === true ? heightCheck * mallMap.currentScale : heightCheck;
+        heightCheck = heightCheck * mallMap.currentScale;
         //first check arc height
-        if((heightCheck > (mallMap.fontSize/mallMap.currentScale))  && d.depth > 0){
+        if((heightCheck > (mallMap.fontSize/mallMap.currentScale))){
             //all good, now check width
             if(measureWidth(d.data.name) < depthWidth){
                 //only show name if there is space.
@@ -99,26 +99,33 @@ function zoomToBounds(expandable,transitionTime) {
         .scale(scale);
 
     //store current scale and alter fontSize accordingly
-    mallMap.currentScale = scale;
-    updateFonts(false);
 
+    //updateFonts(false);
+
+    var transitionEnded = false;
     //transform the svg
     if(expandable !== true){
+        mallMap.currentScale = scale;
         svg.interrupt()
             .transition()
             .duration(transitionTime)
             .attr("transform", transform_str)
             .on("end", function () {
-                updateFonts(false);
+                if(transitionEnded === false){
+                    updateFonts(false);
+                    transitionEnded = true;
+                }
+
             })
     } else if (midTransition === false){
+        mallMap.currentScale = 1;
         d3.select(".d3_tooltip").style("visibility", "hidden");
         midTransition = true; //so any other clicks are disabled while this is going on
         d3.selectAll(".pathLabel")
             .attr("opacity", 0)
             .transition()
             .duration(0) //then change position
-            .attr("transform", d => "rotate(" + (d.foldoutTransformX - 90) + ") translate("
+            .attr("transform", d => "rotate(" + (d.foldoutTransformX === 0 ? 0 : d.foldoutTransformX - 90) + ") translate("
                 + d.foldoutHeight + ",0) rotate(" + (d.foldoutTransformX < 180 ? 0 : 180) + ")")
             .transition()
             .delay(0)
@@ -142,14 +149,21 @@ function zoomToBounds(expandable,transitionTime) {
             .duration(0) //add new foldoutpath
             .attr("d", d => d.foldoutPath)
             .on("end", function () {
-                //get new scale and rescale
-                var [zoomedScale, zoomedX, zoomedY] = getValues();
-                svg.transition()
-                    .duration(0)
-                    .attr("transform", d3.zoomIdentity.translate(zoomedX, zoomedY).scale(zoomedScale));
-                //PROBLEM IS THAT THE zoomScale is for the foldoutPath - not for every
-                //mallMap.currentScale = zoomedScale;
-                updateFonts(true);
+                if(transitionEnded === false){
+                        //get new scale and rescale
+                        var [zoomedScale, zoomedX, zoomedY] = getValues();
+                        svg.transition()
+                            .duration(0)
+                            .attr("transform", d3.zoomIdentity.translate(zoomedX, zoomedY).scale(zoomedScale));
+                        //PROBLEM IS THAT THE zoomScale is for the foldoutPath - not for every
+                        //mallMap.currentScale = zoomedScale;
+                       // updateFonts(true);
+                    d3.selectAll(".pathLabel")
+                        .style("font-size",  mallMap.fontSize)
+                        .attr("y",  mallMap.fontSize * 0.3)
+                        .text(d => d.data.name)
+                       transitionEnded = true;
+                }
             })
             .transition()
             .delay(0)
@@ -166,7 +180,7 @@ function zoomToBounds(expandable,transitionTime) {
         d3.selectAll(".pathLabel")
             .style("font-size", fontSize)
             .attr("y", fontSize * 0.3)
-            .text(l => includeZero === false && l.depth === 0 ? "" : pathText(l, includeZero));
+           .text(l => includeZero === false && l.depth === 0 ? "" : pathText(l, includeZero));
     }
 
     function getValues() {
@@ -174,7 +188,6 @@ function zoomToBounds(expandable,transitionTime) {
         const chartGroup = d3.select(".zoomSvg" + myClass).node().getBBox();
 
         const scale = (chartWidth - 20) / Math.max(chartGroup.width, chartGroup.height);
-
         const newX = ((width - (chartGroup.width * scale)) / 2) - (chartGroup.x * scale);
         const newY = ((height - (chartGroup.height * scale)) / 2) - (chartGroup.y * scale);
 
@@ -239,7 +252,7 @@ function zoomToBounds(expandable,transitionTime) {
                     d3.selectAll("circle#" + this.id).attr("stroke","#333333");
                     if(d3.select("circle#" + this.id).node() !== null){
                         d3.select(d3.select("circle#" + this.id).node().parentElement).raise();
-                    };
+                    }
                     var svgBounds = d3.select("." + myClass + "Svg").node().getBoundingClientRect();
                     if(d.data.relativeValue !== undefined){
                         var tooltipText = "<strong></strong><span style=color:" + d.data.group_color + ";'>" + d.data.group.toUpperCase() + "</span></strong><br><span style='font-weight:normal;'>Well: " + d.data.name
@@ -295,6 +308,7 @@ function zoomToBounds(expandable,transitionTime) {
 
         if(d.depth > 0 && midTransition === false  && (d.data.id !== mallMap.clickedNode)){
             mallMap.clickedNode = d.data.id;
+            let extraDataChange = checkExtraData();
             d3.selectAll(".stackedRect" + mallMap.extraChartDivId).attr("fill-opacity",1);
             if(d.data.well_id !== undefined){
                 //if individual well click.
@@ -319,31 +333,72 @@ function zoomToBounds(expandable,transitionTime) {
                 //if expandable, add foldoutdata
                 if(d.data.expandable !== undefined){
                     addFoldoutData(d);
+                } else if (d.data.name === "Middle"){
+                    d.foldoutPath = "M 0, 0 m -50, 0 a 50,50 0 1,0 100,0 a 50,50 0 1,0 -100,0";
+                    d.foldoutHeight = 0;
+                    d.foldoutTransformX = 0;
+                    if(mallMap.currentExtraChart === "tile"){
+                        drawLineMultiples("middle");
+                    } else if (mallMap.currentExtraChart === "bar"){
+                        var myExtraData = JSON.parse(JSON.stringify(mallMap.extraChartData));
+                        var excludeIds = new Set();
+                        var myKeys = Object.keys(mallMap.wellExtraData).filter(f => f.startsWith(mallMap.selectedParentNode));
+                        myKeys.forEach(k => mallMap.wellExtraData[k].forEach(function(e){
+                            if(e.node_rank <= mallMap.myWellCount){
+                                excludeIds.add(e.well_id)
+                            }
+                        }))
+                        excludeIds = Array.from(excludeIds.values());
+                        myExtraData = myExtraData.filter(f => excludeIds.indexOf(+f.well_id) === -1);
+                        if(mallMap.currentWellIds.length > 0){
+                            myExtraData = myExtraData.filter(f => mallMap.currentWellIds.indexOf(+f.well_id) > -1);
+                        }
+                        drawStackedBar(myExtraData);
+                    } else if(mallMap.currentExtraChart === "map"){
+                        d3.selectAll(".wellCircle")
+                            .attr("opacity",1)
+                            .attr("r", 3/mallMap.mapZoomLevel)
+                            .attr("fill", "black")
+                    }
+                } else if (extraDataChange === true){
+                    drawStackedBar();
                 }
                 //redraw sunburst and zoom.
                 drawSunburst(d,false);
-                zoomToBounds(d.data.expandable === undefined ? false : true,500);
+                zoomToBounds(d.data.expandable === undefined && d.data.name !== "Middle"? false : true,500);
             }
-        } else {
-            console.log('not clicking')
         }
     }
 
+    function checkExtraData(){
+        let extraDataChange = false;
+        if(mallMap.clickedNode.startsWith(mallMap.LOENodePath)){
+            if(mallMap.currentExtraData !== "LOE"){
+                mallMap.extraChartData = mallMap.LOEData;
+                mallMap.currentExtraData = "LOE";
+                d3.select(".yAxisTitleextra_chart_div").text("LOE");
+                extraDataChange = true;
+            }
+        } else {
+            if(mallMap.currentExtraData !== "REVENUE"){
+                mallMap.currentExtraData = "REVENUE";
+                mallMap.extraChartData = mallMap.revenueData;
+                d3.select(".yAxisTitleextra_chart_div").text("REVENUE");
+                extraDataChange = true;
+            }
+        }
+        return extraDataChange;
+    }
     function addFoldoutData(d){
 
         if(d.data.highlight_date_offset !== undefined){
-            console.log('has a date', d.data);
             mallMap.previousParentNode = mallMap.selectedParentNode;
             mallMap.selectedParentNode = d.data.id;
             enableButtons(".buttonGroupfooter_div#compare");
             enableButtons(".buttonGroupfooter_div#tile");
             var wellIds = new Set(), wellColours = {};
-            var myKeys = Object.keys(mallMap.wellExtraData).filter(f => f.includes(mallMap.selectedParentNode));
-            myKeys.forEach(k => mallMap.wellExtraData[k].forEach(function(e){
-                wellIds.add(e.well_id);
-                wellColours[e.well_id] = e.node_color;
-            }))
-            wellIds = Array.from(wellIds.values());
+            var myKeys = Object.keys(mallMap.wellExtraData).filter(f => f.startsWith(mallMap.selectedParentNode));
+            [wellIds,wellColours] = getWellIds(myKeys);
             //day level (parent of top or bottom N)
             if(mallMap.currentExtraChart === "bar"){
                 var myExtraData = JSON.parse(JSON.stringify(mallMap.extraChartData));
@@ -355,16 +410,10 @@ function zoomToBounds(expandable,transitionTime) {
             } else if(mallMap.currentExtraChart === "pyramid"){
                 drawPyramid();
             } else if(mallMap.currentExtraChart ===  "map"){
-                d3.selectAll(".wellCircle")
-                    .attr("visibility",function(){
-                        if(wellIds.indexOf(+this.id.split("well")[1]) > -1){
-                            return "visible"
-                        } else {
-                            return "hidden"
-                        }})
-                    .attr("fill",function(){
-                        return wellColours[+this.id.split("well")[1]];
-                    })
+                if(mallMap.currentWellIds.length > 0){
+                    wellIds = wellIds.filter(f => mallMap.currentWellIds.indexOf(f) > -1)
+                }
+                applyWellProperties(wellIds,wellColours);
             } else if (mallMap.currentExtraChart === "tile"){
                 drawLineMultiples();
             }
@@ -378,12 +427,11 @@ function zoomToBounds(expandable,transitionTime) {
                 var myExtraData = JSON.parse(JSON.stringify(mallMap.extraChartData));
                 var wellIds = new Set(), wellColours = {};
 
-                var myKeys = Object.keys(mallMap.wellExtraData).filter(f => f.includes(mallMap.selectedParentNode));
-                myKeys.forEach(k => mallMap.wellExtraData[k].forEach(function(e){
-                    wellIds.add(e.well_id);
-                    wellColours[e.well_id] = e.node_color;
-                }))
-                wellIds = Array.from(wellIds.values());
+                var myKeys = Object.keys(mallMap.wellExtraData).filter(f => f.startsWith(mallMap.selectedParentNode));
+                if(mallMap.currentExtraChart !== "pyramid"){
+                    myKeys = myKeys.filter(k => mallMap.wellExtraData[k][0].delta_flag === d.data.name);
+                }
+                [wellIds,wellColours] = getWellIds(myKeys);
                 if(mallMap.currentExtraChart === "bar") {
                     if (mallMap.currentWellIds.length > 0) {
                         wellIds = wellIds.filter(f => mallMap.currentWellIds.indexOf(f) > -1)
@@ -393,18 +441,12 @@ function zoomToBounds(expandable,transitionTime) {
                 } else if (mallMap.currentExtraChart === "pyramid"){
                     drawPyramid();
                 } else if(mallMap.currentExtraChart ===  "map"){
-                    d3.selectAll(".wellCircle")
-                        .attr("visibility",function(){
-                            if(wellIds.indexOf(+this.id.split("well")[1]) > -1){
-                                return "visible"
-                            } else {
-                                return "hidden"
-                            }})
-                        .attr("fill",function(){
-                            return wellColours[+this.id.split("well")[1]];
-                        })
+                    if(mallMap.currentWellIds.length > 0){
+                        wellIds = wellIds.filter(f => mallMap.currentWellIds.indexOf(f) > -1)
+                    }
+                    applyWellProperties(wellIds,wellColours);
                 } else if (mallMap.currentExtraChart === "tile"){
-                    drawLineMultiples();
+                    drawLineMultiples(d.data.name);
                 }
         } else {
             mallMap.selectedParentNode = "";
@@ -448,7 +490,6 @@ function zoomToBounds(expandable,transitionTime) {
             //add foldoutPath,dimensions + transform to current data
             var myFoldout = flattenCopy.find(f => f.data.id === (m.data === undefined ? m.id : m.data.id));
             m.foldoutPath = myFoldout.foldoutPath;
-            m.foldoutWidth = myFoldout.x1 - myFoldout.x0;
             m.foldoutHeight = myFoldout.depth === 0 ? 0 : (myFoldout.y0 + myFoldout.y1)/2;
             m.foldoutTransformX = myFoldout.depth === 0 ? 90 : (myFoldout.x0 + myFoldout.x1) / 2 * 180 / Math.PI;
         });
@@ -508,6 +549,12 @@ function zoomToBounds(expandable,transitionTime) {
                     mallMap.clickedNode = d.id;
                     d3.selectAll(".stackedRect" + mallMap.extraChartDivId).attr("fill-opacity",1);
                     var myRoot = root.descendants().find(f => f.depth === d.depth && f.data.id === d.id);
+                    if(d.id.startsWith(mallMap.selectedParentNode)){
+                        if(mallMap.selectedParentNode === ""){
+                        } else {
+                            myRoot = allDepthRoot.descendants().find(f => f.depth === d.depth && f.data.id === d.id);
+                        }
+                    }
                     var myDepth = d.depth;
                     var allData = false;
                     if(d.label === "BACK"){
@@ -541,6 +588,7 @@ function zoomToBounds(expandable,transitionTime) {
                     } else {
                         expandable = myRoot.data.expandable !== undefined ? true : false;
                     }
+                    checkExtraData();
                     if(expandable === true){
                         addFoldoutData(myRoot);
                     } else {
@@ -614,6 +662,15 @@ function zoomToBounds(expandable,transitionTime) {
             (d.data.colors[selectedColor] || mallMap.colors.fillColor) : d.data.group_color);
     }
 
+    my.switchSunburst = function (myPosition){
+
+        const allDepthHierarchy = getHierarchy(mallMap.allDepthData);
+        allDepthRoot = getPartition(allDepthHierarchy);
+        const parentPathData = allDepthRoot.descendants().find(f => f.data.id.startsWith(mallMap.selectedParentNode));
+        mallMap.clickedNode = "";
+        nodeClick([],parentPathData.children.find(f => f.data.name.toLowerCase() === myPosition));
+
+    }
     my.width = function(value) {
         if (!arguments.length) return width;
         width = value;
@@ -631,7 +688,6 @@ function zoomToBounds(expandable,transitionTime) {
         myData = value;
         return my;
     };
-
 
     my.myClass = function(value) {
         if (!arguments.length) return myClass;
@@ -654,6 +710,40 @@ function zoomToBounds(expandable,transitionTime) {
     return my;
 }
 
+function getWellIds(myKeys){
+
+    var wellIds = new Set(), wellColours = {};
+    myKeys.forEach(k => mallMap.wellExtraData[k].forEach(function(e){
+        wellIds.add(e.well_id);
+        wellColours[e.well_id] = e.node_color;
+    }))
+    wellIds = Array.from(wellIds.values());
+    return [wellIds,wellColours];
+
+}
+
+function applyWellProperties(wellIds,wellColours){
+    d3.selectAll(".wellCircle")
+        .attr("opacity",function(){
+            if(wellIds.indexOf(+this.id.split("well")[1]) > -1){
+                return "1"
+            } else {
+                return "0.3"
+            }})
+        .attr("r",function(d){
+            if(wellIds.indexOf(+this.id.split("well")[1]) > -1){
+                return d.valueRadius/mallMap.mapZoomLevel;
+            } else {
+                return 3/mallMap.mapZoomLevel;
+            }})
+        .attr("fill",function(){
+            if(wellIds.indexOf(+this.id.split("well")[1]) > -1){
+                return wellColours[+this.id.split("well")[1]];
+            } else {
+                return "white";
+            }
+        })
+}
 function tooltipMallMapChart() {
 
     var width=0,
@@ -665,7 +755,7 @@ function tooltipMallMapChart() {
     function my(svg) {
 
 
-        const chartWidth = Math.min(width, height);
+        const chartWidth = Math.min(width, height) - 20;
 
         const radius = chartWidth/2;
         const translateStr = "translate(" + (width/2) + "," + (height/2) + ")";
@@ -923,18 +1013,20 @@ function stackedBarChart() {
         xDomain = [],
         newXDomain = [],
         line = "",
-        lineProportion = "";
+        lineProportion = "",
+        myKeys = "";
 
     function my(mySvg) {
 
         //change stacktype to entry 0 if LOE
         svg = mySvg;
+        myData.map(m => m.date = new Date(m.date));
         myData = myData.sort((a,b) => d3.ascending(a.date,b.date));
-
         let dateGroup = d3.group(myData, d => d.date);
         dateGroup = Array.from(dateGroup);
 
         currentData = getDatabyStackOption();
+        myKeys = currentData[1];
 
         const brush = d3.brushX()
             .extent([[0, 0], [width, 20]])
@@ -951,7 +1043,7 @@ function stackedBarChart() {
         xDomain = Array.from(xDomain).map(m => m = new Date(m)).sort((a,b) => d3.ascending(a,b));
         xScaleTime = d3.scaleTime().domain(d3.extent(xDomain)).range([0,width]);
         yScaleProportion = d3.scaleLinear().domain([0,1]).range([height,0]);
-        yScale = "",scaleNumber = 0, myKeys = "",yMax = 0;
+        yScale = "",scaleNumber = 0,yMax = 0;
         newXDomain = xDomain;
 
         if(d3.select(".chartGroup" + myClass)._groups[0][0] === null) {
@@ -985,7 +1077,7 @@ function stackedBarChart() {
             .style("text-transform","uppercase")
             .attr("text-anchor","middle")
             .attr("transform","translate(40," + + (margins.top + (height/2)) + ") rotate(-90)")
-            .text("Revenue");
+            .text(mallMap.currentExtraData);
 
         if(mallMap.currentWellIds.length === 0){
             d3.select(".barTitle" + myClass).text("all")
@@ -997,7 +1089,7 @@ function stackedBarChart() {
         if(currentDateNodes !== undefined){
             const dayCount = d3.timeDay.count(currentDateNodes[0],currentDateNodes[1]);
             brushRange[0] = xScaleTime(d3.timeDay.offset(currentDateNodes[0],-(dayCount*3)));
-            if(brushRange[0] === undefined){brushRange[0] = 0}
+            if(brushRange[0] === undefined || brushRange[0] < 0){brushRange[0] = 0}
             brushRange[1] = xScaleTime(currentDateNodes[1]);
         }
 
@@ -1063,8 +1155,7 @@ function stackedBarChart() {
             .attr("transform","translate(" + margins.left + "," + margins.top + ")");
 
         d3.selectAll(".yAxisProportion" + myClass + " .tick text")
-            .attr("x",-4)
-
+            .attr("x",-4);
 
         const barOptions = ["stack","split","proportion"];
 
@@ -1247,7 +1338,7 @@ function stackedBarChart() {
                 myKeys = Array.from(myKeys);
                 //for each date
                 dateGroup.forEach(function(d) {
-                    //get actual + forecase
+                    //get actual + forecast
                     var forecastTotal = d3.sum(d[1], s => +s.forecast);
                     var actualTotal = d3.sum(d[1], s => +s.actual);
                     //group actual by keys
@@ -1258,7 +1349,7 @@ function stackedBarChart() {
                         , g => mallMap.wellData.find(f => f.well_id === +g.well_id) === undefined ? 0 : mallMap.wellData.find(f => f.well_id === +g.well_id)[stackType]));
                     myKeys.forEach(k => stackData.find(f => f[0] === k) === undefined ? stackData.push([k,0]) : "");
                     myKeys.forEach(k => stackData.find(f => f[0] === k) === undefined ? forecastStackData.push([k,0]) : "");
-                    barData.push(getEntry(d[0], forecastTotal, actualTotal, stackData, forecastStackData, myKeys));
+                    barData.push(getEntry(d[0], forecastTotal,  stackData, forecastStackData, myKeys));
                 })
             } else {
                 var dataProblems = [];
@@ -1296,8 +1387,8 @@ function stackedBarChart() {
                 var currentEntry = {
                     "date":myDate,
                     "Ftotal": forecastTotal,
-                    "Atotal":d3.sum(dataStack, d => d[1]),
-                    "remainder_proportion":(forecastTotal-d3.sum(dataStack, d => d[1]))/forecastTotal
+                    "Atotal":d3.sum(dataStack, s => s[1]),
+                    "remainder_proportion":(forecastTotal-d3.sum(dataStack, s => s[1]))/forecastTotal
                 }
                 if(currentEntry.remainder_proportion < 0){currentEntry.remainder_proportion = 0};
                 if(currentEntry.remainder_proportion > 1){currentEntry.remainder_proportion = 1};
@@ -1326,14 +1417,13 @@ function stackedBarChart() {
     }
 
     function drawBar(myBarData,transitionTime){
-
         myKeys = currentData[1];
 
         xScale = d3.scaleBand().domain(newXDomain).range([0,width]);
         visibleBandwidth = xScale.bandwidth();
         xScaleTimeFiltered = d3.scaleTime().domain(d3.extent(newXDomain)).range([0,width]);
 
-        yMax = d3.max(currentData[currentDataIndex], d => Math.max(d.Ftotal,d.Atotal));
+        yMax = d3.max(currentData[0], d => Math.max(d.Ftotal,d.Atotal));
         yScale = d3.scaleLinear().domain([0,yMax]).range([height,0]);
 
         if(barLayout === "proportion"){
@@ -1614,6 +1704,7 @@ function lineMultipleChart() {
         myData = [],
         myClass="",
         filterType = "",
+        selectedPosition = "",
         yScaleUniversal = false;
 
     function my(svg) {
@@ -1621,17 +1712,27 @@ function lineMultipleChart() {
         var myPositions = [];
         if(mallMap.selectedParentNode !== ""){
             myPositions = ["beat","middle","miss"];
-            var myIndex = myPositions.findIndex(f => f === mallMap.currentSelectedPath.name);
-            if(myIndex === -1){
+            const selectedIndex = myPositions.indexOf(selectedPosition);
+            if(selectedIndex === -1){
                 filterType = myPositions[0];
             } else {
-                filterType = myPositions[myIndex];
+                filterType = myPositions[selectedIndex];
             }
         }
 
         var chartWidth = (width - margins.left - margins.right)/5;
         var chartHeight = (height - margins.top - margins.bottom)/5;
         const xScale = d3.scaleTime().domain(d3.extent(myData, d => new Date(d.date))).range([0,chartWidth-10]);
+
+        if(d3.select(".yAxisTitle" + myClass)._groups[0][0] === null) {
+            svg.append("text").attr("class","yAxisTitle" + myClass);
+        }
+        d3.select(".yAxisTitle" + myClass)
+            .attr("x",width/2)
+            .attr("y",15)
+            .attr("text-transform","uppercase")
+            .attr("text-anchor","middle")
+            .text(mallMap.currentExtraData);
 
         drawMultiples();
 
@@ -1640,34 +1741,7 @@ function lineMultipleChart() {
 
             var filteredData = JSON.parse(JSON.stringify(myData));
             if(mallMap.selectedParentNode !== ""){
-                var wellIds = new Set();
-                var myKeys = Object.keys(mallMap.wellExtraData).filter(f => f.includes(mallMap.selectedParentNode));
-                myKeys.forEach(k => mallMap.wellExtraData[k].forEach(function(e){
-                    var tempFilterType = filterType;
-
-                    if(tempFilterType === "beat" && e.delta_flag === "Beat"){
-                        if(e.node_rank <= mallMap.myWellCount){
-                            tempFilterType = "middle";
-                        } else {
-                            wellIds.add(e.well_id);
-                        }
-                    } else if(tempFilterType === "miss" && e.delta_flag === "Miss"){
-                        if(e.node_rank <= mallMap.myWellCount){
-                            tempFilterType = "middle";
-                        } else {
-                            wellIds.add(e.well_id);
-                        }
-                    }
-                    if (tempFilterType === "middle"){
-                        wellIds.add(e.well_id);
-                    }
-                }))
-                wellIds = Array.from(wellIds.values());
-                if(filterType === "middle"){
-                    filteredData = filteredData.filter(f => wellIds.indexOf(+f.well_id) === -1);
-                } else {
-                    filteredData = filteredData.filter(f => wellIds.indexOf(+f.well_id) > -1);
-                }
+                filteredData = getFilteredData(filteredData);
             }
             if(mallMap.currentWellIds.length > 0){
                 filteredData = filteredData.filter(f => mallMap.currentWellIds.indexOf(+f.well_id) > -1);
@@ -1727,6 +1801,7 @@ function lineMultipleChart() {
             var currentDateNodes = mallMap.dateNodes[mallMap.selectedParentNode];
 
             chartGroup.select(".wellDateRect")
+                .attr("pointer-events","none")
                 .attr("x",currentDateNodes === undefined ? 0 :
                     xScale(currentDateNodes[0])
                 )
@@ -1738,12 +1813,14 @@ function lineMultipleChart() {
                 .attr("transform","translate(" + (margins.left+5) + "," +  (margins.top+5) + ")");
 
             chartGroup.select(".ipcLine")
+                .attr("pointer-events","none")
                 .attr("d",d => line(d[1]))
                 .attr("fill","none")
                 .attr("stroke","#31a354")
                 .attr("transform","translate(" + (margins.left+5) + "," + (margins.top+5) + ")");
 
             chartGroup.select(".actualArea")
+                .attr("pointer-events","none")
                 .attr("d",d => area(d[1]))
                 .attr("fill",d3.schemeBlues[4][3])
                 .attr("fill-opacity",0.4)
@@ -1751,6 +1828,7 @@ function lineMultipleChart() {
                 .attr("transform","translate(" + (margins.left+5) + "," + (margins.top+5) + ")");
 
             chartGroup.select(".wellLabel")
+                .attr("pointer-events","none")
                 .attr("font-size",8)
                 .attr("x",chartWidth/2)
                 .attr("y",15)
@@ -1759,6 +1837,7 @@ function lineMultipleChart() {
                 .attr("transform","translate(" + (2.5 + margins.left) + "," + (2.5 + margins.top) + ")")
 
             chartGroup.select(".wellMaxLabel")
+                .attr("pointer-events","none")
                 .attr("font-size",8)
                 .attr("fill","#A0A0A0")
                 .attr("x",2)
@@ -1772,6 +1851,28 @@ function lineMultipleChart() {
                 .attr("height",chartHeight - 5)
                 .attr("fill","#F0F0F0")
                 .attr("transform","translate(" + (2.5 + margins.left) + "," + (2.5 + margins.top) + ")")
+                .attr("cursor","pointer")
+                .on("mouseover",function(){
+                    d3.select(this).attr("fill","#D0D0D0");
+                })
+                .on("mouseout",function(){
+                    d3.select(this).attr("fill","#F0F0F0");
+                })
+                .on("click",function(event,d){
+                    disableButtons(".buttonGroupfooter_div#tile");
+                    //set global vars
+                    mallMap.currentWellIds = [d[0]];
+                    mallMap.selectedColor = d[0];
+                    mallMap.currentExtraChart = "bar";
+                    //clone data
+                    var myExtraData = JSON.parse(JSON.stringify(mallMap.extraChartData));
+                    myExtraData = myExtraData.filter(f => f.well_id === d[0]);
+                    d3.select("." + mallMap.extraChartDivId  + "Svg").selectAll("*").remove();
+                    //drawDashboard
+                    drawDashboard(mallMap.mainData, mallMap.mapData,"chart_div","breadcrumb_div","footer_div","extra_chart_div",myExtraData);
+                    d3.select(".barTitleextra_chart_div").text(mallMap.wellNames[d[0]]);
+                    document.getElementById("radio_" + d[0]).checked = true;
+                });
         }
 
         const filterOptions = myPositions;
@@ -1787,15 +1888,12 @@ function lineMultipleChart() {
         filterGroup.select(".filterText")
             .attr("id",(d,i) => "filterText" + i)
             .attr("fill",d => d.includes("beat") ? "#31a354":(d.includes("miss") ? "#cb181d":  "#707070"))
-            .attr("opacity",(d,i) => i === 0 ? 1 : 0.2)
+            .attr("opacity",(d,i) => d === filterType ? 1 : 0.2)
             .attr("y",margins.top/2)
             .attr("cursor","pointer")
             .text((d,i) => (i === 0 ? "" : "|    ") + d.replace(/_/g,' ').toUpperCase())
             .on("click",function(event,d){
-                d3.selectAll(".filterText").attr("opacity",0.2);
-                d3.select(this).attr("opacity",1);
-                filterType = d;
-                drawMultiples();
+                mallMap.sunburstChart.switchSunburst(d);
             });
 
 
@@ -1844,12 +1942,41 @@ function lineMultipleChart() {
 
         axisGroup.attr("transform","translate(" + (width - margins.right - axisX) + ",0)");
 
+        function getFilteredData(filteredData){
+            var wellIds = new Set();
+            var myKeys = Object.keys(mallMap.wellExtraData).filter(f => f.startsWith(mallMap.selectedParentNode));
+            myKeys.forEach(k => mallMap.wellExtraData[k].forEach(function(e){
+                var tempFilterType = filterType;
+
+                if(tempFilterType === "beat" && e.delta_flag === "Beat"){
+                    if(e.node_rank <= mallMap.myWellCount){
+                        tempFilterType = "middle";
+                    } else {
+                        wellIds.add(e.well_id);
+                    }
+                } else if(tempFilterType === "miss" && e.delta_flag === "Miss"){
+                    if(e.node_rank <= mallMap.myWellCount){
+                        tempFilterType = "middle";
+                    } else {
+                        wellIds.add(e.well_id);
+                    }
+                }
+                if (tempFilterType === "middle"){
+                    wellIds.add(e.well_id);
+                }
+            }))
+            wellIds = Array.from(wellIds.values());
+            if(filterType === "middle"){
+                filteredData = filteredData.filter(f => wellIds.indexOf(+f.well_id) === -1);
+            } else {
+                filteredData = filteredData.filter(f => wellIds.indexOf(+f.well_id) > -1);
+            }
+            return filteredData;
+        }
+
 
     }
 
-    my.toggleMenu = function () {
-        return my;
-    }
     my.width = function(value) {
         if (!arguments.length) return width;
         width = value;
@@ -1878,6 +2005,12 @@ function lineMultipleChart() {
     my.myClass = function(value) {
         if (!arguments.length) return myClass;
         myClass = value;
+        return my;
+    };
+
+    my.selectedPosition = function(value) {
+        if (!arguments.length) return selectedPosition;
+        selectedPosition = value;
         return my;
     };
 
@@ -2179,12 +2312,11 @@ function wellMap() {
         svg = svg.select(".zoomSvg" + myClass);
 
         const zoom = d3.zoom()
-            .on("zoom", zoomed);
+            .on("zoom", zoomed)
+            .on("end", zoomFinished);
 
-        const radiusScale = d3.scaleLinear().domain(d3.extent(myData, d => d.radius_value)).range([3,10]);
-        if(d3.max(radiusScale.domain(), d => d) === 1){
-            radiusScale.range([3,3]);
-        }
+        const radiusScale = d3.scaleLinear().domain(d3.extent(myData, d => Math.sqrt(d.radius_value))).range([3,15]);
+        myData.map(m => m.valueRadius = radiusScale(Math.sqrt(m.radius_value)));
         svg.call(zoom);
         const projection = d3.geoAlbersUsa()
             .fitSize([width, height], mapData)
@@ -2209,6 +2341,7 @@ function wellMap() {
 
                 var tooltipText = d.properties.NAME === d.properties.state ? d.properties.NAME :
                     d.properties.NAME + ", " + d.properties.state;
+
                 d3.select(".d3_tooltip")
                     .style("visibility","visible")
                     .style("top",(event.offsetY + svgBounds.y) + "px")
@@ -2220,6 +2353,9 @@ function wellMap() {
             .on("mouseout",function(){
                 d3.select(".d3_tooltip").style("visibility","hidden");
             });
+
+        //filter to rule out long lat errors
+        myData = myData.filter(f => projection(f.long_lat) !== null);
 
         const wellsGroup = svg.selectAll('.wellsGroup' + myClass)
             .data(myData)
@@ -2235,8 +2371,8 @@ function wellMap() {
             .attr("fill-opacity",0.4)
             .attr("stroke","transparent")
             .attr("stroke-width",3)
-            .attr("r",d => radiusScale(d.radius_value))
-            .attr("cx", d => projection(d.long_lat)[0])
+           // .attr("r",3)
+            .attr("cx",d => projection(d.long_lat)[0])
             .attr("cy", d => projection(d.long_lat)[1])
             .on("mouseover",function(event,d){
                 var svgBounds = d3.select("." + myClass + "Svg").node().getBoundingClientRect();
@@ -2258,7 +2394,7 @@ function wellMap() {
               //          + "<br>" + mallMap.tooltipExtraFields[d.data.tooltip_type]["actual"] + ": " + d3.format(".3s")(d.actual)
               //          + "<br>" + mallMap.tooltipExtraFields[d.data.tooltip_type]["delta"] + ": " + d3.format(".3s")(d.data.delta) + "</span>";
               //  }
-                var tooltipText = d.wellName + " (" + d.well_id + ")";
+                var tooltipText = d.wellName + " (" + d.well_id + ")    <br>";
                 d3.select(".d3_tooltip")
                     .style("visibility","visible")
                     .style("top",(event.offsetY + svgBounds.y) + "px")
@@ -2267,13 +2403,28 @@ function wellMap() {
 
                 d3.selectAll(".d3_tooltip").selectAll("svg").remove();
                 drawSvg("d3_tooltip_div");
+                d3.select("#d3_tooltip_div svg").attr("height","100")
                 drawTooltipMallMap(mallMap.mainData,"d3_tooltip_div",d.well_id);
             })
             .on("mouseout",function(){
                 d3.select(".d3_tooltip").style("visibility","hidden");
-                d3.selectAll(".pyramidBar").attr("opacity",1);
-                d3.selectAll(".sunburstPath").attr("opacity",1);
-            });
+            })
+            .on("click",function(event,d){
+                d3.select(".d3_tooltip").style("visibility","hidden");
+                disableButtons(".buttonGroupfooter_div#tile");
+                //set global vars
+                mallMap.currentWellIds = [d.well_id];
+                mallMap.selectedColor = d.well_id;
+                mallMap.currentExtraChart = "bar";
+                //clone data
+                var myExtraData = JSON.parse(JSON.stringify(mallMap.extraChartData));
+                myExtraData = myExtraData.filter(f => f.well_id === d.well_id);
+                d3.select("." + mallMap.extraChartDivId  + "Svg").selectAll("*").remove();
+                //drawDashboard
+                drawDashboard(mallMap.mainData, mallMap.mapData,"chart_div","breadcrumb_div","footer_div","extra_chart_div",myExtraData);
+                d3.select(".barTitleextra_chart_div").text(mallMap.wellNames[d.well_id]);
+                document.getElementById("radio_" + d.well_id).checked = true;
+            });;
 
         zoomToBounds();
 
@@ -2302,10 +2453,15 @@ function wellMap() {
 
         function zoomed(event) {
             const {transform} = event;
+            mallMap.mapZoomLevel = transform.k;
             svg.attr("transform", transform);
             d3.selectAll(".statePath").attr("stroke-width", 1.5 / transform.k);
-            d3.selectAll(".wellCircle") .attr("r",d => radiusScale(d.radius_value)/transform.k)
-                .attr("stroke-width",1.5/transform.k)
+        }
+
+        function zoomFinished(event) {
+            d3.selectAll(".wellCircle")
+                .attr("r",3/mallMap.mapZoomLevel)
+                .attr("stroke-width",1.5/mallMap.mapZoomLevel)
         }
     }
 

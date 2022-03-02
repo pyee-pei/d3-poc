@@ -11,7 +11,14 @@ function drawDashboard(myData,mapData,divId,breadcrumbDivId,footerDivId,extraCha
     drawMallMap(myData,divId,breadcrumbDivId);
     drawMiniMallMap(mallMap.allDepthData,footerDivId);
     mallMap.extraChartDivId = extraChartDivId;
-    drawStackedBar(filteredBarData);
+    if(mallMap.currentExtraChart === "bar"){
+        //default is bar so will not redraw if it has been changed meanwhile
+        drawStackedBar(filteredBarData);
+    }
+    d3.timeout(function(d){
+        d3.select(".yAxisTitle" + divId).text("REVENUE");
+    }, 500);
+
 
 }
 
@@ -88,13 +95,12 @@ function drawWellMap(){
                     "well_id": d.well_id,
                     "wellName": d.well_name,
                     "long_lat":[+d.longitude_surface,+d.latitude_surface],
-                    "radius_value": 1,
+                    "radius_value": d3.sum(mallMap.extraChartData.filter(f => f.well_id === d.well_id), s => +s.actual),
                     "fill": "black"
                 })
             }
         }
     })
-
     var my_chart = wellMap()
         .width(width)
         .height(height)
@@ -103,6 +109,29 @@ function drawWellMap(){
         .mapData(mallMap.mapData);
 
     my_chart(svg);
+
+   if(mallMap.selectedParentNode !== ""){
+       if(mallMap.currentSelectedPath.name.toLowerCase() === "middle"){
+           d3.selectAll(".wellCircle")
+               .attr("opacity",1)
+               .attr("r", 3/mallMap.mapZoomLevel)
+               .attr("fill", "black");
+       } else {var wellIds = new Set(), wellColours = {};
+           var myKeys = Object.keys(mallMap.wellExtraData).filter(f => f.startsWith(mallMap.selectedParentNode));
+           var filterCategories = ["beat","miss"];
+           if(filterCategories.indexOf(mallMap.currentSelectedPath.name.toLowerCase()) > -1){
+               myKeys = myKeys.filter(k => mallMap.wellExtraData[k][0].delta_flag.toLowerCase() === mallMap.currentSelectedPath.name.toLowerCase());
+           }
+           [wellIds,wellColours] = getWellIds(myKeys);
+           if(mallMap.currentWellIds.length > 0){
+               wellIds = wellIds.filter(f => mallMap.currentWellIds.indexOf(f) > -1)
+           }
+           d3.timeout(function(d){
+               applyWellProperties(wellIds,wellColours);
+           }, 500);
+
+       }
+   }
 }
 
 function drawStackedBar(filteredData){
@@ -136,7 +165,7 @@ function drawStackedBar(filteredData){
 
 }
 
-function drawLineMultiples(){
+function drawLineMultiples(selectedPosition){
 
     var chartData = JSON.parse(JSON.stringify(mallMap.extraChartData));
     if(mallMap.currentExtraChart !== "tile"){
@@ -150,20 +179,16 @@ function drawLineMultiples(){
     var width = +svg.attr("width");
     var margins = {"left":10,"right":10,"top":30,"bottom":10};
 
-    if(mallMap.selectedParentNode !== mallMap.previousParentNode  || mallMap.selectedParentNode === ""){
-        console.log(mallMap.selectedParentNode, mallMap.previousParentNode)
-        mallMap.lineMultipleChart = lineMultipleChart()
-            .width(width)
-            .height(height)
-            .margins(margins)
-            .myData(chartData)
-            .myClass(mallMap.extraChartDivId );
+    const myChart = lineMultipleChart()
+        .width(width)
+        .height(height)
+        .margins(margins)
+        .myData(chartData)
+        .selectedPosition(selectedPosition === undefined ? "" : selectedPosition.toLowerCase())
+        .myClass(mallMap.extraChartDivId );
 
-        mallMap.lineMultipleChart(svg);
-        console.log('drawing tile')
-    } else {
-        mallMap.lineMultipleChart.toggleMenu();
-    }
+    myChart(svg);
+
 }
 
 

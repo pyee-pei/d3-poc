@@ -5,11 +5,11 @@ var mallMap = {
     "texture":"",
     "currentScale":1,
     "extraChartDivId":"",
-    "extraChartData":{},
-    "extraChartDataLOE":{},
+    "extraChartData":[],
+    "LOEData":[],
+    "revenueData":[],
     "sunburstChart":"",
     "stackedBarChart":"",
-    "lineMultiplesChart":"",
     "wellData":{},
     "wellExtraData":{},
     "mainData":"",
@@ -31,5 +31,8 @@ var mallMap = {
     "tooltipExtraFields":{},
     "oppColors":{"actual":"#4682B4","downtime":"#A0A0A0","unidentified":"#FFA500"},
     "oppIds":{"actual":"-3-2-2-","downtime":"-3-2_1-","unidentified":"-3-2-3-"},
-    "currentSelectedPath":""
+    "currentSelectedPath":"",
+    "mapZoomLevel":1,
+    "LOENodePath":"-3-3-",
+    "currentExtraData":"REVENUE"
 };
