@@ -2051,7 +2051,7 @@ function pyramidChart() {
                     "colour":d.colour,
                     "index":index,
                     "name":d.name,
-                    "tooltip_type":filteredData[0].tooltype_type
+                    "tooltip_type":filteredData[0].tooltip_type
                 })
                 ySet.add(i);
             })
@@ -2206,9 +2206,9 @@ function pyramidChart() {
                     var svgBounds = d3.select("." + myClass + "Svg").node().getBoundingClientRect();
                     var tooltipText = "<strong></strong><span style=color:" + d.colour + ";'>" + d.name.toUpperCase() + "</span></strong><br><span style='font-weight:normal;'>Well: " + d.wellName
                         + " (" + d.well_id + ")<br>Difference: $" + d3.format(".3s")(d.value)
-                        +  "<br>" + mallMap.tooltipExtraFields[d.data.tooltip_type]["target"] + ": $" + d3.format(".3s")(d.target)
-                        + "<br>" + mallMap.tooltipExtraFields[d.data.tooltip_type]["actual"] + ": " + d3.format(".3s")(d.actual)
-                        + "<br>" + mallMap.tooltipExtraFields[d.data.tooltip_type]["delta"] + ": " + d3.format(".3s")(d.data.delta) + "</span>";
+                        +  "<br>" + mallMap.tooltipExtraFields[d.tooltip_type]["target"] + ": $" + d3.format(".3s")(d.target)
+                        + "<br>" + mallMap.tooltipExtraFields[d.tooltip_type]["actual"] + ": " + d3.format(".3s")(d.actual)
+                        + "<br>" + mallMap.tooltipExtraFields[d.tooltip_type]["delta"] + ": " + d3.format(".3s")(d.delta) + "</span>";
 
                     d3.select(".d3_tooltip")
                         .style("visibility","visible")
